@@ -1,0 +1,6 @@
+{
+  "name": "هم‌سفره",
+  "description": "مدیریت هوشمند خرید، انبار، مصرف و دنگ مواد غذایی بین افراد خانواده و هم‌خانه‌ها",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

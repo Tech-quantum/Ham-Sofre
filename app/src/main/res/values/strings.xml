@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">هم‌سفره</string>
+    <string name="tab_pantry">انبار و خوراکی‌ها</string>
+    <string name="tab_purchases">خرید و دُنگ</string>
+    <string name="tab_shopping">لیست خرید مشترک</string>
+    <string name="tab_consumption">مصرف روزانه</string>
+    <string name="tab_settle">تسویه حساب</string>
+    <string name="tab_members">افراد</string>
+    
+    <string name="action_add_item">افزودن خوراکی</string>
+    <string name="action_scan_barcode">اسکن بارکد</string>
+    <string name="action_record_purchase">ثبت خرید جدید</string>
+    <string name="action_log_consumption">ثبت مصرف</string>
+    <string name="action_share_list">اشتراک‌گذاری لیست</string>
+    <string name="action_settle_debts">تسویه حساب</string>
+
+    <string name="channel_expiry_name">هشدارهای انقضای مواد غذایی</string>
+    <string name="channel_expiry_desc">اطلاع‌رسانی نزدیک شدن تاریخ انقضای اقلام یخچال و انبار</string>
+    <string name="notif_expiry_title">هشدار انقضای مواد غذایی! ⚠️</string>
+</resources>
