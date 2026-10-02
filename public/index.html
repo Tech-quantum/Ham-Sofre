@@ -2,117 +2,868 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>همسفره | همسفره برنامه ای برای همسفره ها</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>همسفره | مدیریت هوشمند یخچال، انبار و مخارج خانوار</title>
   
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#4338ca">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="./icon-192.png">
 
   <style>
     :root {
       --primary: #4f46e5;
       --primary-dark: #3730a3;
+      --primary-light: #e0e7ff;
+      --secondary: #059669;
+      --secondary-light: #d1fae5;
+      --danger: #dc2626;
+      --danger-light: #fee2e2;
+      --warning: #d97706;
+      --warning-light: #fef3c7;
       --bg: #f8fafc;
-      --card: #ffffff;
+      --surface: #ffffff;
       --text: #0f172a;
-      --muted: #64748b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
     }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Vazirmatn", "IRANSans", Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
+
     body {
       background-color: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* Top App Bar */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 0.6rem;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .brand p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .badge-status {
+      background: var(--secondary-light);
+      color: var(--secondary);
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    /* Main Scrollable Area */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      padding-bottom: 5.5rem;
+    }
+
+    .view-section {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Card Style */
+    .card {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Stats Overview */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* Form and Inputs */
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      font-size: 0.9rem;
+      background: #fafafa;
+      color: var(--text);
+      outline: none;
+      transition: border 0.15s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: 0.6rem;
+      transition: opacity 0.15s;
+    }
+
+    button:active {
+      opacity: 0.8;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      padding: 0.7rem 1.25rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem;
+      gap: 0.4rem;
     }
-    .card {
-      background: var(--card);
-      border-radius: 1.5rem;
-      padding: 2.5rem 2rem;
-      max-width: 440px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-      border: 1px solid #e2e8f0;
+
+    .btn-danger {
+      background: var(--danger-light);
+      color: var(--danger);
+      padding: 0.4rem 0.6rem;
+      font-size: 0.75rem;
     }
-    .icon {
-      width: 120px;
-      height: 120px;
-      border-radius: 1.5rem;
-      margin-bottom: 1.5rem;
-      object-fit: cover;
-      box-shadow: 0 8px 16px -4px rgba(79, 70, 229, 0.3);
+
+    /* List Items */
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
-    h1 {
-      font-size: 1.75rem;
-      font-weight: 800;
-      color: var(--primary);
-      margin-bottom: 0.5rem;
-    }
-    p {
-      color: var(--muted);
-      font-size: 0.95rem;
-      line-height: 1.6;
-      margin-bottom: 1.5rem;
-    }
-    .btn {
-      display: inline-block;
-      width: 100%;
-      background: var(--primary);
-      color: white;
-      padding: 0.875rem;
+
+    .pantry-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem;
       border-radius: 0.75rem;
-      font-size: 1rem;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.2s;
+      background: var(--surface);
+      border: 1px solid var(--border);
     }
-    .btn:hover {
-      background: var(--primary-dark);
+
+    .item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .item-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .item-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .pill-fresh {
+      background: var(--secondary-light);
+      color: var(--secondary);
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .pill-warning {
+      background: var(--warning-light);
+      color: var(--warning);
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .pill-danger {
+      background: var(--danger-light);
+      color: var(--danger);
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    /* Shopping checklist */
+    .shopping-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+    }
+
+    .shopping-item.checked span {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    /* Settlement Summary */
+    .balance-card {
+      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+      color: #fff;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .balance-title {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin-bottom: 0.25rem;
+    }
+
+    .balance-amount {
+      font-size: 1.75rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    /* Bottom Navigation Bar */
+    nav.bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 30;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      background: transparent;
+      color: var(--text-muted);
+      height: 100%;
+      font-size: 0.75rem;
+      border-radius: 0;
+    }
+
+    .nav-btn.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .nav-icon {
+      font-size: 1.25rem;
+    }
+
+    /* Floating Recipe Suggestion */
+    .recipe-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .recipe-header {
+      font-weight: 800;
+      color: #1e40af;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <img src="./icon-192.png" alt="همسفره" class="icon">
-    <h1>همسفره</h1>
-    <p>همسفره برنامه ای برای همسفره ها — مدیریت هوشمند یخچال، انبار و مخارج مشترک خانوار</p>
-    <button class="btn" id="installBtn">نصب وب‌اپلیکیشن (PWA)</button>
-  </div>
 
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <img src="./icon-192.png" alt="همسفره">
+      <div>
+        <h1>همسفره</h1>
+        <p>مدیریت هوشمند یخچال و مخارج</p>
+      </div>
+    </div>
+    <span class="badge-status" id="connectionStatus">آنلاین و آماده</span>
+  </header>
+
+  <!-- Main Views Container -->
+  <main>
+
+    <!-- SECTION 1: PANTRY / FRIDGE (انبار و یخچال) -->
+    <section id="view-pantry" class="view-section active">
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-number" id="totalPantryItems">۰</div>
+          <div class="stat-label">کل اقلام</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="expiringSoonCount" style="color: var(--warning);">۰</div>
+          <div class="stat-label">نزدیک به انقضا</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="expiredCount" style="color: var(--danger);">۰</div>
+          <div class="stat-label">منقضی شده</div>
+        </div>
+      </div>
+
+      <!-- Chef AI Recommendation Card -->
+      <div class="recipe-box" id="recipeBanner">
+        <div class="recipe-header">👨‍🍳 پیشنهاد سرآشپز همسفره</div>
+        <p style="font-size: 0.85rem; color: #1e3a8a; line-height: 1.5;" id="recipeSuggestionText">
+          بر اساس موجودی یخچال شما، پیشنهاد امروز یک <strong>املت گوجه‌فرنگی و پنیر تازه</strong> با نان گرم است!
+        </p>
+      </div>
+
+      <!-- Add New Item Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>افزودن به یخچال یا انبار</span>
+        </div>
+        <div class="input-row">
+          <input type="text" id="newItemName" placeholder="نام کالا (مثلاً شیر، تخم‌مرغ)...">
+          <input type="number" id="newItemDays" placeholder="انقضا (روز)" style="max-width: 100px;" value="5">
+        </div>
+        <div class="input-row">
+          <select id="newItemCategory">
+            <option value="یخچال">🧊 یخچال</option>
+            <option value="انبار">📦 انبار و کابینت</option>
+            <option value="میوه و سبزیجات">🥦 میوه و سبزیجات</option>
+            <option value="پروتئین">🥩 پروتئین و گوشت</option>
+            <option value="لبنیات">🥛 لبنیات</option>
+          </select>
+          <button class="btn-primary" id="addItemBtn">
+            <span>+</span>
+            <span>افزودن کالا</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Items List -->
+      <div class="card">
+        <div class="card-title">
+          <span>اقلام موجود در خانه</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);" id="pantryCountBadge">۰ قلم</span>
+        </div>
+        <div class="item-list" id="pantryList">
+          <!-- Dynamic Items -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SHOPPING LIST (لیست خرید) -->
+    <section id="view-shopping" class="view-section">
+      <div class="card">
+        <div class="card-title">
+          <span>لیست خرید اشتراکی خانوار</span>
+        </div>
+        <div class="input-row">
+          <input type="text" id="newShoppingItem" placeholder="اقلام مورد نیاز (مثلاً روغن، ماکارونی)...">
+          <button class="btn-primary" id="addShoppingBtn">
+            <span>+</span>
+            <span>افزودن</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>خریدها</span>
+          <button class="btn-danger" id="clearPurchasedBtn">پاکسازی خریده‌شده‌ها</button>
+        </div>
+        <div class="item-list" id="shoppingList">
+          <!-- Dynamic Shopping List -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: EXPENSES & SETTLEMENT (مخارج و تسویه) -->
+    <section id="view-expenses" class="view-section">
+      <div class="balance-card">
+        <div class="balance-title">مجموع مخارج ثبت‌شده این ماه</div>
+        <div class="balance-amount" id="totalExpenseDisplay">۰ تومان</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">ثبت خرج جدید</div>
+        <div class="input-row">
+          <input type="text" id="expenseTitle" placeholder="بابت چه خریدی؟ (مثلاً خرید میوه)">
+          <input type="number" id="expenseAmount" placeholder="مبلغ (تومان)">
+        </div>
+        <div class="input-row">
+          <select id="expensePayer">
+            <option value="من">من پرداخت کردم</option>
+            <option value="علی">علی پرداخت کرد</option>
+            <option value="رضا">رضا پرداخت کرد</option>
+          </select>
+          <button class="btn-primary" id="addExpenseBtn">ثبت فاکتور</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">محاسبه دنگ و تسویه حساب</div>
+        <div id="settlementList" class="item-list">
+          <!-- Settlement calculated items -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">تاریخچه فاکتورها</div>
+        <div id="expenseHistoryList" class="item-list">
+          <!-- Expense History -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: HOUSEMATES & CHAT (هم‌خانه‌ها و گفتگو) -->
+    <section id="view-chat" class="view-section">
+      <div class="card">
+        <div class="card-title">اعضای همسفره</div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;" id="membersChips">
+          <span style="background: var(--primary-light); color: var(--primary); padding: 0.3rem 0.75rem; border-radius: 9999px; font-weight: 700; font-size: 0.85rem;">👑 من (مدیر)</span>
+          <span style="background: var(--bg); border: 1px solid var(--border); padding: 0.3rem 0.75rem; border-radius: 9999px; font-size: 0.85rem;">👤 علی</span>
+          <span style="background: var(--bg); border: 1px solid var(--border); padding: 0.3rem 0.75rem; border-radius: 9999px; font-size: 0.85rem;">👤 رضا</span>
+        </div>
+      </div>
+
+      <div class="card" style="display: flex; flex-direction: column; height: 350px;">
+        <div class="card-title">گفتگوی هم‌خانه‌ها</div>
+        <div id="chatMessages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0;">
+          <div style="background: var(--bg); padding: 0.6rem 0.85rem; border-radius: 0.75rem; max-width: 80%; align-self: flex-start;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary);">علی</div>
+            <div style="font-size: 0.85rem; margin-top: 0.2rem;">بچه‌ها شیر توی یخچال تموم شده، من تو راه برگشت می‌خرم.</div>
+          </div>
+          <div style="background: var(--primary-light); color: var(--primary-dark); padding: 0.6rem 0.85rem; border-radius: 0.75rem; max-width: 80%; align-self: flex-end;">
+            <div style="font-size: 0.75rem; font-weight: 700;">من</div>
+            <div style="font-size: 0.85rem; margin-top: 0.2rem;">دمت گرم علی جان، به لیست خرید هم اضافه‌ش کردم.</div>
+          </div>
+        </div>
+        <div class="input-row" style="margin-top: 0.5rem; margin-bottom: 0;">
+          <input type="text" id="chatInput" placeholder="پیام شما درباره ناهار، خرید یا خانه...">
+          <button class="btn-primary" id="sendChatBtn" style="padding: 0.7rem 1rem;">ارسال</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('pantry')">
+      <span class="nav-icon">🧊</span>
+      <span>یخچال و انبار</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('shopping')">
+      <span class="nav-icon">🛒</span>
+      <span>لیست خرید</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('expenses')">
+      <span class="nav-icon">💳</span>
+      <span>مخارج و دنگ</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('chat')">
+      <span class="nav-icon">💬</span>
+      <span>گفتگو</span>
+    </button>
+  </nav>
+
+  <!-- Application Logic (LocalStorage Synced) -->
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then((reg) => console.log('همسفره Service Worker ثبت شد:', reg.scope))
-          .catch((err) => console.warn('خطا در ثبت Service Worker:', err));
+    // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+      const targetSection = document.getElementById('view-' + tabName);
+      if (targetSection) targetSection.classList.add('active');
+
+      const buttons = document.querySelectorAll('.nav-btn');
+      const tabs = ['pantry', 'shopping', 'expenses', 'chat'];
+      const index = tabs.indexOf(tabName);
+      if (index !== -1 && buttons[index]) {
+        buttons[index].classList.add('active');
+      }
+    }
+
+    // Default State
+    let pantry = JSON.parse(localStorage.getItem('hamsofre_pantry')) || [
+      { id: 1, name: 'شیر کم‌چرب', category: 'لبنیات', daysLeft: 2, qty: 1 },
+      { id: 2, name: 'تخم‌مرغ', category: 'پروتئین', daysLeft: 6, qty: 10 },
+      { id: 3, name: 'پنیر سفید', category: 'لبنیات', daysLeft: 12, qty: 1 },
+      { id: 4, name: 'گوجه‌فرنگی', category: 'میوه و سبزیجات', daysLeft: 3, qty: 4 },
+      { id: 5, name: 'برنج طارم', category: 'انبار', daysLeft: 90, qty: 5 }
+    ];
+
+    let shopping = JSON.parse(localStorage.getItem('hamsofre_shopping')) || [
+      { id: 1, name: 'روغن سرخ‌کردنی', checked: false },
+      { id: 2, name: 'نان سنگک تازه', checked: true },
+      { id: 3, name: 'ماکارونی مانا', checked: false }
+    ];
+
+    let expenses = JSON.parse(localStorage.getItem('hamsofre_expenses')) || [
+      { id: 1, title: 'خرید هفتگی سوپرمارکت', amount: 360000, payer: 'من', date: 'امروز' },
+      { id: 2, title: 'خرید میوه و تره‌بار', amount: 180000, payer: 'علی', date: 'دیروز' }
+    ];
+
+    function saveData() {
+      localStorage.setItem('hamsofre_pantry', JSON.stringify(pantry));
+      localStorage.setItem('hamsofre_shopping', JSON.stringify(shopping));
+      localStorage.setItem('hamsofre_expenses', JSON.stringify(expenses));
+      renderPantry();
+      renderShopping();
+      renderExpenses();
+    }
+
+    // Render Pantry
+    function renderPantry() {
+      const list = document.getElementById('pantryList');
+      list.innerHTML = '';
+
+      let expiringSoon = 0;
+      let expired = 0;
+
+      pantry.forEach(item => {
+        let badgeClass = 'pill-fresh';
+        let badgeText = `${item.daysLeft} روز مانده`;
+
+        if (item.daysLeft <= 0) {
+          badgeClass = 'pill-danger';
+          badgeText = 'منقضی شده';
+          expired++;
+        } else if (item.daysLeft <= 3) {
+          badgeClass = 'pill-warning';
+          badgeText = `${item.daysLeft} روز (فوری)`;
+          expiringSoon++;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'pantry-item';
+        div.innerHTML = `
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-meta">
+              <span>${item.category}</span>
+              <span class="${badgeClass}">${badgeText}</span>
+            </div>
+          </div>
+          <div class="qty-controls">
+            <button class="btn-circle" onclick="changeQty(${item.id}, -1)">-</button>
+            <span style="font-weight: 700; min-width: 20px; text-align: center;">${item.qty}</span>
+            <button class="btn-circle" onclick="changeQty(${item.id}, 1)">+</button>
+            <button class="btn-danger" style="margin-right: 0.5rem;" onclick="deletePantryItem(${item.id})">حذف</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+
+      document.getElementById('totalPantryItems').innerText = pantry.length;
+      document.getElementById('pantryCountBadge').innerText = `${pantry.length} قلم`;
+      document.getElementById('expiringSoonCount').innerText = expiringSoon;
+      document.getElementById('expiredCount').innerText = expired;
+    }
+
+    function changeQty(id, delta) {
+      const item = pantry.find(i => i.id === id);
+      if (item) {
+        item.qty += delta;
+        if (item.qty <= 0) {
+          pantry = pantry.filter(i => i.id !== id);
+        }
+        saveData();
+      }
+    }
+
+    function deletePantryItem(id) {
+      pantry = pantry.filter(i => i.id !== id);
+      saveData();
+    }
+
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+      const name = document.getElementById('newItemName').value.trim();
+      const days = parseInt(document.getElementById('newItemDays').value) || 7;
+      const category = document.getElementById('newItemCategory').value;
+
+      if (!name) return alert('لطفاً نام کالا را وارد کنید');
+
+      pantry.unshift({
+        id: Date.now(),
+        name,
+        daysLeft: days,
+        category,
+        qty: 1
+      });
+
+      document.getElementById('newItemName').value = '';
+      saveData();
+    });
+
+    // Render Shopping List
+    function renderShopping() {
+      const list = document.getElementById('shoppingList');
+      list.innerHTML = '';
+
+      shopping.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `shopping-item ${item.checked ? 'checked' : ''}`;
+        div.innerHTML = `
+          <input type="checkbox" class="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleShopping(${item.id})">
+          <span style="flex: 1; font-weight: 600;">${item.name}</span>
+          <button class="btn-danger" onclick="deleteShopping(${item.id})">✕</button>
+        `;
+        list.appendChild(div);
       });
     }
 
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
+    function toggleShopping(id) {
+      const item = shopping.find(i => i.id === id);
+      if (item) {
+        item.checked = !item.checked;
+        saveData();
+      }
+    }
+
+    function deleteShopping(id) {
+      shopping = shopping.filter(i => i.id !== id);
+      saveData();
+    }
+
+    document.getElementById('addShoppingBtn').addEventListener('click', () => {
+      const input = document.getElementById('newShoppingItem');
+      const name = input.value.trim();
+      if (!name) return;
+      shopping.unshift({ id: Date.now(), name, checked: false });
+      input.value = '';
+      saveData();
     });
 
-    document.getElementById('installBtn').addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt = null;
-      } else {
-        alert('برای نصب همسفره، در مرورگر خود گزینه Add to Home screen را انتخاب کنید.');
-      }
+    document.getElementById('clearPurchasedBtn').addEventListener('click', () => {
+      shopping = shopping.filter(i => !i.checked);
+      saveData();
     });
+
+    // Expenses & Settlement
+    function renderExpenses() {
+      const historyList = document.getElementById('expenseHistoryList');
+      const settlementList = document.getElementById('settlementList');
+      historyList.innerHTML = '';
+      settlementList.innerHTML = '';
+
+      let total = 0;
+      const memberTotals = { 'من': 0, 'علی': 0, 'رضا': 0 };
+
+      expenses.forEach(exp => {
+        total += exp.amount;
+        if (memberTotals[exp.payer] !== undefined) {
+          memberTotals[exp.payer] += exp.amount;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'pantry-item';
+        div.innerHTML = `
+          <div>
+            <div style="font-weight: 700;">${exp.title}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">پرداخت‌کننده: ${exp.payer} • ${exp.date}</div>
+          </div>
+          <div style="font-weight: 800; color: var(--primary);">${exp.amount.toLocaleString()} تومان</div>
+        `;
+        historyList.appendChild(div);
+      });
+
+      document.getElementById('totalExpenseDisplay').innerText = `${total.toLocaleString()} تومان`;
+
+      const perPerson = Math.round(total / 3);
+      Object.keys(memberTotals).forEach(person => {
+        const diff = memberTotals[person] - perPerson;
+        const div = document.createElement('div');
+        div.className = 'pantry-item';
+        div.innerHTML = `
+          <div>
+            <div style="font-weight: 700;">${person}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">پرداخت کرده: ${memberTotals[person].toLocaleString()} تومان (سهم: ${perPerson.toLocaleString()})</div>
+          </div>
+          <div style="font-weight: 800; ${diff >= 0 ? 'color: var(--secondary);' : 'color: var(--danger);'}">
+            ${diff >= 0 ? '+' + diff.toLocaleString() + ' (طلبکار)' : diff.toLocaleString() + ' (بدهکار)'}
+          </div>
+        `;
+        settlementList.appendChild(div);
+      });
+    }
+
+    document.getElementById('addExpenseBtn').addEventListener('click', () => {
+      const title = document.getElementById('expenseTitle').value.trim();
+      const amount = parseInt(document.getElementById('expenseAmount').value);
+      const payer = document.getElementById('expensePayer').value;
+
+      if (!title || !amount) return alert('لطفاً عنوان و مبلغ فاکتور را وارد کنید');
+
+      expenses.unshift({
+        id: Date.now(),
+        title,
+        amount,
+        payer,
+        date: 'امروز'
+      });
+
+      document.getElementById('expenseTitle').value = '';
+      document.getElementById('expenseAmount').value = '';
+      saveData();
+    });
+
+    // Chat
+    document.getElementById('sendChatBtn').addEventListener('click', () => {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.style.cssText = 'background: var(--primary-light); color: var(--primary-dark); padding: 0.6rem 0.85rem; border-radius: 0.75rem; max-width: 80%; align-self: flex-end;';
+      div.innerHTML = `
+        <div style="font-size: 0.75rem; font-weight: 700;">من</div>
+        <div style="font-size: 0.85rem; margin-top: 0.2rem;">${text}</div>
+      `;
+      container.appendChild(div);
+      input.value = '';
+      container.scrollTop = container.scrollHeight;
+    });
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.warn);
+      });
+    }
+
+    // Initial render
+    saveData();
   </script>
 </body>
 </html>
