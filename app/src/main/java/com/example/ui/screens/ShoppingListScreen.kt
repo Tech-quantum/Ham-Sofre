@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.barcode.BarcodeProductInfo
 import com.example.data.model.Member
 import com.example.data.model.ShoppingListItem
@@ -37,6 +38,9 @@ fun ShoppingListScreen(
     onOpenBarcodeScanner: () -> Unit
 ) {
     val context = LocalContext.current
+    val isAutoReplenishEnabled by viewModel.isAutoReplenishEnabled.collectAsStateWithLifecycle()
+    val belowThresholdItems by viewModel.belowThresholdPredictions.collectAsStateWithLifecycle()
+
     var showAddDialog by remember { mutableStateOf(false) }
     var itemToAssign by remember { mutableStateOf<ShoppingListItem?>(null) }
     var showConvertExpenseDialog by remember { mutableStateOf(false) }
@@ -98,6 +102,93 @@ fun ShoppingListScreen(
                         Icon(Icons.Default.DoneAll, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("ثبت خرج و انبار (${purchasedItems.size})", fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Smart Shopping List Auto-Replenishment Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.AutoMode,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "لیست خرید هوشمند انبار",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "افزودن خودکار به لیست خرید با افت موجودی به زیر آستانه مصرف",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isAutoReplenishEnabled,
+                            onCheckedChange = { viewModel.toggleAutoReplenish(it) }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (belowThresholdItems.isNotEmpty()) {
+                                "⚠️ ${belowThresholdItems.size} قلم کالا کمتر از آستانه مصرف قرار دارند."
+                            } else {
+                                "🟢 تمام اقلام انبار بالاتر از آستانه مصرف هستند."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (belowThresholdItems.isNotEmpty()) MaterialTheme.colorScheme.error else Color(0xFF15803D),
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        FilledTonalButton(
+                            onClick = { viewModel.triggerAutoReplenishmentCheck(userInitiated = true) },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("بررسی و همگام‌سازی", fontSize = 11.sp)
+                        }
                     }
                 }
             }
@@ -514,6 +605,33 @@ fun ShoppingListItemRow(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
+
+                    // Auto-order badge from consumption algorithm
+                    if (item.addedByMemberName == "الگوریتم هوشمند هم‌سفره") {
+                        Surface(
+                            color = Color(0xFFEFF6FF),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.SmartToy,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "سفارش خودکار الگوریتم",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF1D4ED8),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
 
                     // Assignment pill
                     Surface(

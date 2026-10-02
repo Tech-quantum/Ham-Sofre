@@ -17,9 +17,10 @@ import kotlinx.coroutines.launch
         PurchaseRecord::class,
         ConsumptionLog::class,
         ShoppingListItem::class,
-        SettlementRecord::class
+        SettlementRecord::class,
+        ChatMessage::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun consumptionDao(): ConsumptionDao
     abstract fun shoppingListDao(): ShoppingListDao
     abstract fun settlementDao(): SettlementDao
+    abstract fun chatDao(): ChatDao
 
     companion object {
         @Volatile
@@ -67,6 +69,7 @@ abstract class AppDatabase : RoomDatabase() {
             val foodItemDao = database.foodItemDao()
             val purchaseDao = database.purchaseDao()
             val shoppingListDao = database.shoppingListDao()
+            val chatDao = database.chatDao()
 
             if (memberDao.getCount() > 0) return
 
@@ -241,6 +244,38 @@ abstract class AppDatabase : RoomDatabase() {
                     addedByMemberName = "سارا",
                     isPurchased = true,
                     estimatedPrice = 135000
+                )
+            )
+
+            // 5. Initial Housemate Chat Messages
+            chatDao.insertMessage(
+                ChatMessage(
+                    senderMemberId = aliId,
+                    senderMemberName = "علی",
+                    text = "سلام بچه‌ها! نان و لبنیات رو به لیست خرید اضافه کردم. کسی امروز خرید می‌ره؟",
+                    timestampMillis = now - (3 * 3600 * 1000),
+                    messageType = "SHOPPING_REQ",
+                    isFromMe = true
+                )
+            )
+            chatDao.insertMessage(
+                ChatMessage(
+                    senderMemberId = saraId,
+                    senderMemberName = "سارا",
+                    text = "سلام علی جان، من سر راه برگشت از دانشگاه می‌گیرم. نان تست رو هم فوری زدی دیدم ⚡",
+                    timestampMillis = now - (2 * 3600 * 1000),
+                    messageType = "TEXT",
+                    isFromMe = false
+                )
+            )
+            chatDao.insertMessage(
+                ChatMessage(
+                    senderMemberId = rezaId,
+                    senderMemberName = "رضا",
+                    text = "دستت درد نکنه سارا! منم هزینه‌های میوه و تره‌بار رو توی ماژول دُنگ ثبت کردم، تسویه‌ها بروزه 💰",
+                    timestampMillis = now - (1 * 3600 * 1000),
+                    messageType = "EXPENSE_ALERT",
+                    isFromMe = false
                 )
             )
         }

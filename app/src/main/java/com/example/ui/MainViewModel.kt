@@ -43,7 +43,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         app.database.purchaseDao(),
         app.database.consumptionDao(),
         app.database.shoppingListDao(),
-        app.database.settlementDao()
+        app.database.settlementDao(),
+        app.database.chatDao()
     )
     private val notificationManager = app.notificationManager
     private val recipeService = com.example.data.ai.GeminiRecipeService()
@@ -65,6 +66,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val settlements: StateFlow<List<SettlementRecord>> = repository.allSettlements
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val chatMessages: StateFlow<List<ChatMessage>> = repository.allChatMessages
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _recipes = MutableStateFlow<List<com.example.data.ai.Recipe>>(emptyList())
@@ -107,6 +111,90 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) { logs, inventory, shopping ->
         computeSmartShoppingSuggestions(logs, inventory, shopping)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Algorithmic prediction of repurchase dates based on expiry and consumption rates
+    val repurchasePredictions: StateFlow<List<com.example.data.prediction.RepurchasePrediction>> = combine(
+        foodItems,
+        consumptionLogs
+    ) { items, logs ->
+        com.example.data.prediction.PantryRepurchasePredictor.predictRepurchaseDates(items, logs)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Items whose current stock level has fallen below the consumption algorithm threshold
+    val belowThresholdPredictions: StateFlow<List<com.example.data.prediction.RepurchasePrediction>> = repurchasePredictions.map { predictions ->
+        predictions.filter { it.isBelowThreshold }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _isAutoReplenishEnabled = MutableStateFlow(true)
+    val isAutoReplenishEnabled: StateFlow<Boolean> = _isAutoReplenishEnabled.asStateFlow()
+
+    init {
+        // Automatic Shopping List replenishment based on consumption threshold
+        viewModelScope.launch {
+            repurchasePredictions.collect { predictions ->
+                if (_isAutoReplenishEnabled.value) {
+                    val activeShoppingNames = shoppingItems.value.filter { !it.isPurchased }
+                        .map { it.name.trim().lowercase() }
+                        .toSet()
+                    val hasCandidates = predictions.any { it.isBelowThreshold && !activeShoppingNames.contains(it.foodItem.name.trim().lowercase()) }
+                    if (hasCandidates) {
+                        triggerAutoReplenishmentCheck(userInitiated = false)
+                    }
+                }
+            }
+        }
+    }
+
+    fun toggleAutoReplenish(enabled: Boolean) {
+        _isAutoReplenishEnabled.value = enabled
+        if (enabled) {
+            triggerAutoReplenishmentCheck(userInitiated = true)
+        } else {
+            showMessage("افزودن خودکار هوشمند به لیست خرید موقتاً غیرفعال شد.")
+        }
+    }
+
+    fun triggerAutoReplenishmentCheck(userInitiated: Boolean = false) {
+        viewModelScope.launch {
+            val belowThreshold = repurchasePredictions.value.filter { it.isBelowThreshold }
+            val activeShoppingNames = shoppingItems.value.filter { !it.isPurchased }
+                .map { it.name.trim().lowercase() }
+                .toSet()
+
+            val currentMe = members.value.firstOrNull { it.isMe } ?: members.value.firstOrNull()
+            var addedCount = 0
+
+            for (pred in belowThreshold) {
+                val cleanName = pred.foodItem.name.trim().lowercase()
+                if (!activeShoppingNames.contains(cleanName)) {
+                    val newItem = ShoppingListItem(
+                        name = pred.foodItem.name,
+                        barcode = pred.foodItem.barcode,
+                        quantity = pred.recommendedPurchaseQuantity,
+                        unit = pred.unit,
+                        category = pred.foodItem.category,
+                        addedByMemberId = currentMe?.id ?: 1L,
+                        addedByMemberName = "الگوریتم هوشمند هم‌سفره",
+                        isPurchased = false,
+                        estimatedPrice = pred.foodItem.price,
+                        isUrgent = pred.urgency == com.example.data.prediction.PredictionUrgency.CRITICAL
+                    )
+                    repository.insertShoppingItem(newItem)
+                    addedCount++
+                }
+            }
+
+            if (userInitiated) {
+                if (addedCount > 0) {
+                    showMessage("⚡ $addedCount قلم کالای زیر آستانه مصرف، خودکار به لیست خرید اضافه شد! 🛒")
+                } else {
+                    showMessage("موجودی تمام اقلام انبار بالاتر از آستانه اطمینان است و نیاز جدیدی وجود ندارد. ✔")
+                }
+            } else if (addedCount > 0) {
+                showMessage("🤖 $addedCount قلم کالا به دلیل کاهش موجودی زیر آستانه مصرف، خودکار به لیست خرید اضافه شد.")
+            }
+        }
+    }
 
     fun clearUiMessage() {
         _uiMessage.value = null
@@ -507,6 +595,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.deleteMember(member)
             showMessage("عضو «${member.name}» حذف شد.")
+        }
+    }
+
+    // --- Housemate Chat Operations ---
+    fun sendChatMessage(
+        text: String,
+        sender: Member,
+        messageType: String = "TEXT"
+    ) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            val message = ChatMessage(
+                senderMemberId = sender.id,
+                senderMemberName = sender.name,
+                text = text.trim(),
+                timestampMillis = System.currentTimeMillis(),
+                messageType = messageType,
+                isFromMe = sender.isMe
+            )
+            repository.insertChatMessage(message)
+        }
+    }
+
+    fun deleteChatMessage(message: ChatMessage) {
+        viewModelScope.launch {
+            repository.deleteChatMessage(message)
+        }
+    }
+
+    fun clearChatMessages() {
+        viewModelScope.launch {
+            repository.clearChatMessages()
+            showMessage("تاریخچه گفتگوی هم‌سفره پاک شد.")
+        }
+    }
+
+    fun addPredictedItemToShoppingList(prediction: com.example.data.prediction.RepurchasePrediction) {
+        viewModelScope.launch {
+            val item = prediction.foodItem
+            val currentMe = members.value.firstOrNull { it.isMe } ?: members.value.firstOrNull()
+            val shoppingItem = ShoppingListItem(
+                name = item.name,
+                barcode = item.barcode,
+                quantity = prediction.recommendedPurchaseQuantity,
+                unit = item.unit,
+                category = item.category,
+                addedByMemberId = currentMe?.id ?: 1L,
+                addedByMemberName = currentMe?.name ?: "من",
+                isPurchased = false,
+                estimatedPrice = item.price,
+                isUrgent = prediction.urgency == com.example.data.prediction.PredictionUrgency.CRITICAL
+            )
+            repository.insertShoppingItem(shoppingItem)
+            showMessage("«${item.name}» به لیست خرید اضافه شد. 🛒")
         }
     }
 

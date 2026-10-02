@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.barcode.BarcodeProductInfo
 import com.example.data.model.FoodItem
 import com.example.data.model.Member
@@ -35,8 +36,10 @@ fun PantryScreen(
     onOpenBarcodeScanner: () -> Unit,
     onOpenAiRecipes: () -> Unit = {}
 ) {
+    val predictions by viewModel.repurchasePredictions.collectAsStateWithLifecycle()
+
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("ALL") } // ALL, EXPIRING, FRIDGE, FREEZER, PANTRY
+    var selectedFilter by remember { mutableStateOf("ALL") } // ALL, PREDICTIONS, EXPIRING, FRIDGE, FREEZER, PANTRY
     var showAddDialog by remember { mutableStateOf(false) }
     var itemToConsume by remember { mutableStateOf<FoodItem?>(null) }
     var itemToEdit by remember { mutableStateOf<FoodItem?>(null) }
@@ -225,6 +228,27 @@ fun PantryScreen(
                     )
                 }
                 item {
+                    val criticalCount = predictions.count { it.urgency == com.example.data.prediction.PredictionUrgency.CRITICAL }
+                    FilterChip(
+                        selected = selectedFilter == "PREDICTIONS",
+                        onClick = { selectedFilter = "PREDICTIONS" },
+                        label = {
+                            Text(
+                                if (criticalCount > 0) "🔮 پیش‌بینی خرید ($criticalCount بحرانی)"
+                                else "🔮 پیش‌بینی خرید مجدد"
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Timeline,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (criticalCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    )
+                }
+                item {
                     FilterChip(
                         selected = selectedFilter == "EXPIRING",
                         onClick = { selectedFilter = "EXPIRING" },
@@ -260,48 +284,115 @@ fun PantryScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Food Items List
-            if (filteredItems.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+            if (selectedFilter == "PREDICTIONS") {
+                // Prediction Header Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
-                            Icons.Default.SoupKitchen,
+                            Icons.Default.Psychology,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.outline
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(28.dp)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "پیش‌بینی هوشمند زمان خرید مجدد",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = "محاسبه دقیق بر پایه تاریخ انقضا و نرخ مصرف استخراج‌شده از Room.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (predictions.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = if (searchQuery.isNotEmpty()) "موردی با این نام پیدا نشد" else "انبار و یخچال خالی است!",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "با زدن دکمه اسکن یا دکمه افزودن، خوراکی‌ها را وارد کنید.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "خوراکی‌ای در انبار برای پیش‌بینی وجود ندارد.",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.outline
                         )
                     }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        items(predictions, key = { it.foodItem.id }) { pred ->
+                            RepurchasePredictionCard(
+                                prediction = pred,
+                                onAddToShoppingList = {
+                                    viewModel.addPredictedItemToShoppingList(pred)
+                                }
+                            )
+                        }
+                    }
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    items(filteredItems, key = { it.id }) { item ->
-                        FoodItemCard(
-                            item = item,
-                            onConsumeClick = { itemToConsume = item },
-                            onDeleteClick = { viewModel.deleteFoodItem(item) },
-                            onEditClick = { itemToEdit = item }
-                        )
+                // Food Items List
+                if (filteredItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.SoupKitchen,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.outline
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (searchQuery.isNotEmpty()) "موردی با این نام پیدا نشد" else "انبار و یخچال خالی است!",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "با زدن دکمه اسکن یا دکمه افزودن، خوراکی‌ها را وارد کنید.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        items(filteredItems, key = { it.id }) { item ->
+                            FoodItemCard(
+                                item = item,
+                                onConsumeClick = { itemToConsume = item },
+                                onDeleteClick = { viewModel.deleteFoodItem(item) },
+                                onEditClick = { itemToEdit = item }
+                            )
+                        }
                     }
                 }
             }
@@ -709,4 +800,155 @@ fun ConsumeFoodDialog(
             }
         }
     )
+}
+
+@Composable
+fun RepurchasePredictionCard(
+    prediction: com.example.data.prediction.RepurchasePrediction,
+    onAddToShoppingList: () -> Unit
+) {
+    val dateFormat = remember { java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault()) }
+    val formattedDate = remember(prediction.predictedRepurchaseDateMillis) {
+        dateFormat.format(java.util.Date(prediction.predictedRepurchaseDateMillis))
+    }
+
+    val urgencyColor = when (prediction.urgency) {
+        com.example.data.prediction.PredictionUrgency.CRITICAL -> MaterialTheme.colorScheme.errorContainer
+        com.example.data.prediction.PredictionUrgency.MODERATE -> Color(0xFFFEF3C7)
+        com.example.data.prediction.PredictionUrgency.NORMAL -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val urgencyTextColor = when (prediction.urgency) {
+        com.example.data.prediction.PredictionUrgency.CRITICAL -> MaterialTheme.colorScheme.onErrorContainer
+        com.example.data.prediction.PredictionUrgency.MODERATE -> Color(0xFF78350F)
+        com.example.data.prediction.PredictionUrgency.NORMAL -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header: Name and Urgency Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = prediction.foodItem.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "دسته: ${prediction.foodItem.category} | موجودی فعلی: ${prediction.currentStock} ${prediction.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+
+                Surface(
+                    color = urgencyColor,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = prediction.urgency.faTitle,
+                        color = urgencyTextColor,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Prediction metrics row
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "نرخ مصرف روزانه:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Text(
+                            text = "${String.format(java.util.Locale.US, "%.2f", prediction.dailyConsumptionRate)} ${prediction.unit} در روز",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "زمان تخمینی خرید مجدد:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Text(
+                            text = if (prediction.daysUntilRepurchase == 0) "همین امروز (خرید فوری)" else "${prediction.daysUntilRepurchase} روز دیگر ($formattedDate)",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (prediction.daysUntilRepurchase <= 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "علت نیاز به خرید:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Text(
+                            text = prediction.reason.faTitle,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = prediction.explanationNote,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                fontSize = 11.sp
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Action Button
+            Button(
+                onClick = onAddToShoppingList,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("افزودن هوشمند به لیست خرید (${prediction.recommendedPurchaseQuantity} ${prediction.unit})")
+            }
+        }
+    }
 }

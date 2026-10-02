@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>هم‌سفره | مدیریت هوشمند یخچال، انبار و مخارج مشترک خانوار</title>
+  
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .pwa-card {
+      background: var(--card-bg);
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      text-align: center;
+      border: 1px solid #e2e8f0;
+    }
+    .app-icon {
+      width: 110px;
+      height: 110px;
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+      margin-bottom: 1.5rem;
+      object-fit: cover;
+    }
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 1.75rem;
+      line-height: 1.6;
+    }
+    .features {
+      background: #f1f5f9;
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      text-align: right;
+      margin-bottom: 1.75rem;
+    }
+    .features li {
+      list-style: none;
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.925rem;
+      color: #334155;
+    }
+    .features li::before {
+      content: "✔";
+      color: var(--primary);
+      font-weight: bold;
+    }
+    .badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: var(--primary);
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      background: var(--primary);
+      color: #ffffff;
+      padding: 0.875rem;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+  </style>
+</head>
+<body>
+
+  <main class="pwa-card">
+    <img src="/icon-192.png" alt="آیکون هم‌سفره" class="app-icon">
+    <div class="badge">نسخه پیش‌رونده وب (PWA)</div>
+    <h1>هم‌سفره</h1>
+    <p class="subtitle">هم‌سفره، دستیار هوشمند مدیریت یخچال، پایش تاریخ انقضا، دنگ و مخارج مشترک خانوار</p>
+
+    <ul class="features">
+      <li>اسکن بارکد محصولات با دوربین</li>
+      <li>پیش‌بینی مصرف و لیست خرید هوشمند خودکار</li>
+      <li>محاسبه دنگ، سهم و تسویه حساب هم‌خانه‌ها</li>
+      <li>پیشنهاد دستور پخت با هوش مصنوعی جمینای</li>
+    </ul>
+
+    <button id="installBtn" class="btn">نصب اپلیکیشن روی دستگاه</button>
+  </main>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(reg) {
+          console.log('هم‌سفره Service Worker با موفقیت ثبت شد:', reg.scope);
+        })
+        .catch(function(err) {
+          console.warn('ثبت Service Worker ناموفق بود:', err);
+        });
+    }
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`نتیجه درخواست نصب: ${outcome}`);
+        deferredPrompt = null;
+      } else {
+        alert('این برنامه آماده نصب به عنوان PWA است. از منوی مرورگر گزینه Add to Home screen را انتخاب کنید.');
+      }
+    });
+  </script>
+</body>
+</html>

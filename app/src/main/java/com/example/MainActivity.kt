@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
                     val recipes by viewModel.recipes.collectAsStateWithLifecycle()
                     val isLoadingRecipes by viewModel.isLoadingRecipes.collectAsStateWithLifecycle()
                     val smartSuggestions by viewModel.smartShoppingSuggestions.collectAsStateWithLifecycle()
+                    val chatMessages by viewModel.chatMessages.collectAsStateWithLifecycle()
                     val uiMessage by viewModel.uiMessage.collectAsStateWithLifecycle()
 
                     val snackbarHostState = remember { SnackbarHostState() }
@@ -91,11 +92,23 @@ class MainActivity : ComponentActivity() {
                     }
 
                     var currentTab by remember { mutableStateOf(0) }
+                    var showChatScreen by remember { mutableStateOf(false) }
                     var showBarcodeScanner by remember { mutableStateOf(false) }
                     var showAiRecipeDialog by remember { mutableStateOf(false) }
                     var scannedProductForAdd by remember { mutableStateOf<FoodItem?>(null) }
 
-                    Scaffold(
+                    if (showChatScreen) {
+                        androidx.activity.compose.BackHandler {
+                            showChatScreen = false
+                        }
+                        HousemateChatScreen(
+                            viewModel = viewModel,
+                            messages = chatMessages,
+                            members = members,
+                            onBack = { showChatScreen = false }
+                        )
+                    } else {
+                        Scaffold(
                         topBar = {
                             TopAppBar(
                                 title = {
@@ -157,6 +170,34 @@ class MainActivity : ComponentActivity() {
                                             contentDescription = "اسکن بارکد",
                                             tint = MaterialTheme.colorScheme.primary
                                         )
+                                    }
+
+                                    // Housemate Collaborative Chat Action
+                                    IconButton(onClick = { showChatScreen = true }) {
+                                        if (chatMessages.isNotEmpty()) {
+                                            BadgedBox(
+                                                badge = {
+                                                    Badge(
+                                                        containerColor = MaterialTheme.colorScheme.tertiary,
+                                                        contentColor = MaterialTheme.colorScheme.onTertiary
+                                                    ) {
+                                                        Text(chatMessages.size.toString())
+                                                    }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Forum,
+                                                    contentDescription = "چت هم‌سفره",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        } else {
+                                            Icon(
+                                                Icons.Default.Forum,
+                                                contentDescription = "چت هم‌سفره",
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
                                 },
                                 colors = TopAppBarDefaults.topAppBarColors(
@@ -277,31 +318,20 @@ class MainActivity : ComponentActivity() {
                                 4 -> ConsumptionAndMembersScreen(
                                     viewModel = viewModel,
                                     consumptionLogs = consumptionLogs,
-                                    members = members
+                                    members = members,
+                                    chatMessages = chatMessages
                                 )
                             }
                         }
                     }
+                }
 
                     // Barcode Scanner Dialog
                     if (showBarcodeScanner) {
                         BarcodeScannerDialog(
                             onDismissRequest = { showBarcodeScanner = false },
                             onBarcodeScanned = { barcode, productInfo ->
-                                val now = System.currentTimeMillis()
-                                val prefilledItem = FoodItem(
-                                    name = productInfo.name,
-                                    barcode = barcode,
-                                    category = productInfo.category,
-                                    quantity = productInfo.defaultQuantity,
-                                    unit = productInfo.defaultUnit,
-                                    location = productInfo.defaultLocation,
-                                    purchaseDateMillis = now,
-                                    expiryDateMillis = now + (productInfo.shelfLifeDays.toLong() * 24 * 60 * 60 * 1000),
-                                    price = productInfo.estimatedPrice,
-                                    purchasedByMemberId = members.firstOrNull()?.id ?: 0L
-                                )
-                                scannedProductForAdd = prefilledItem
+                                viewModel.showMessage("«${productInfo.name}» با موفقیت در انبار ثبت شد. ✔")
                                 showBarcodeScanner = false
                             }
                         )

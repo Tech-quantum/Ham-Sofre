@@ -10,7 +10,8 @@ class FoodShareRepository(
     private val purchaseDao: PurchaseDao,
     private val consumptionDao: ConsumptionDao,
     private val shoppingListDao: ShoppingListDao,
-    private val settlementDao: SettlementDao
+    private val settlementDao: SettlementDao,
+    private val chatDao: ChatDao
 ) {
     // Members
     val allMembers: Flow<List<Member>> = memberDao.getAllMembers()
@@ -55,4 +56,10 @@ class FoodShareRepository(
     val allSettlements: Flow<List<SettlementRecord>> = settlementDao.getAllSettlements()
     suspend fun insertSettlement(settlement: SettlementRecord) = settlementDao.insertSettlement(settlement)
     suspend fun deleteSettlement(settlement: SettlementRecord) = settlementDao.deleteSettlement(settlement)
+
+    // Housemate Chat
+    val allChatMessages: Flow<List<ChatMessage>> = chatDao.getAllMessages()
+    suspend fun insertChatMessage(message: ChatMessage) = chatDao.insertMessage(message)
+    suspend fun deleteChatMessage(message: ChatMessage) = chatDao.deleteMessage(message)
+    suspend fun clearChatMessages() = chatDao.clearAllMessages()
 }

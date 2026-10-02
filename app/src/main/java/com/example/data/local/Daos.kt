@@ -123,3 +123,19 @@ interface SettlementDao {
     @Delete
     suspend fun deleteSettlement(settlement: SettlementRecord)
 }
+
+@Dao
+interface ChatDao {
+    @Query("SELECT * FROM chat_messages ORDER BY timestampMillis ASC")
+    fun getAllMessages(): Flow<List<ChatMessage>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMessage(message: ChatMessage): Long
+
+    @Delete
+    suspend fun deleteMessage(message: ChatMessage)
+
+    @Query("DELETE FROM chat_messages")
+    suspend fun clearAllMessages()
+}
+

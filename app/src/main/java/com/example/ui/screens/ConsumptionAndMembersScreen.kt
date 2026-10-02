@@ -26,9 +26,10 @@ import java.util.*
 fun ConsumptionAndMembersScreen(
     viewModel: MainViewModel,
     consumptionLogs: List<ConsumptionLog>,
-    members: List<Member>
+    members: List<Member>,
+    chatMessages: List<com.example.data.model.ChatMessage> = emptyList()
 ) {
-    var selectedSubTab by remember { mutableStateOf(0) } // 0: Consumption Logs, 1: Manage Members
+    var selectedSubTab by remember { mutableStateOf(0) } // 0: Consumption Logs, 1: Manage Members, 2: Chat
     var showAddMemberDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -43,20 +44,41 @@ fun ConsumptionAndMembersScreen(
             Tab(
                 selected = selectedSubTab == 0,
                 onClick = { selectedSubTab = 0 },
-                text = { Text("تاریخچه مصرف خوراکی‌ها") },
+                text = { Text("مصرف خوراکی‌ها", fontSize = 11.sp) },
                 icon = { Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp)) }
             )
             Tab(
                 selected = selectedSubTab == 1,
                 onClick = { selectedSubTab = 1 },
-                text = { Text("افراد و هم‌خانه‌ها (${members.size})") },
+                text = { Text("اعضا (${members.size})", fontSize = 11.sp) },
                 icon = { Icon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(18.dp)) }
+            )
+            Tab(
+                selected = selectedSubTab == 2,
+                onClick = { selectedSubTab = 2 },
+                text = { Text("چت هم‌سفره", fontSize = 11.sp) },
+                icon = {
+                    if (chatMessages.isNotEmpty()) {
+                        BadgedBox(badge = { Badge { Text(chatMessages.size.toString()) } }) {
+                            Icon(Icons.Default.Forum, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    } else {
+                        Icon(Icons.Default.Forum, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                }
             )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (selectedSubTab == 0) {
+        if (selectedSubTab == 2) {
+            HousemateChatScreen(
+                viewModel = viewModel,
+                messages = chatMessages,
+                members = members,
+                onBack = { selectedSubTab = 0 }
+            )
+        } else if (selectedSubTab == 0) {
             // Consumption Logs View
             if (consumptionLogs.isEmpty()) {
                 Box(
