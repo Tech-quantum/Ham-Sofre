@@ -37,6 +37,14 @@ fun PantryScreen(
     onOpenAiRecipes: () -> Unit = {}
 ) {
     val predictions by viewModel.repurchasePredictions.collectAsStateWithLifecycle()
+    val recipes by viewModel.recipes.collectAsStateWithLifecycle()
+    val isLoadingRecipes by viewModel.isLoadingRecipes.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        if (recipes.isEmpty() && foodItems.isNotEmpty()) {
+            viewModel.fetchRecipeSuggestions()
+        }
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("ALL") } // ALL, PREDICTIONS, EXPIRING, FRIDGE, FREEZER, PANTRY
@@ -137,41 +145,137 @@ fun PantryScreen(
                         }
                     }
 
+                    // Interactive Gemini AI Chef Recommendation Card
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
-                            .padding(bottom = 10.dp)
-                            .clickable { onOpenAiRecipes() },
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-                        shape = RoundedCornerShape(10.dp)
+                            .padding(bottom = 10.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(12.dp),
+                        tonalElevation = 2.dp
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Column(
+                            modifier = Modifier.padding(12.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "چی بپزیم؟ پیشنهاد دستور پخت هوشمند با جمینای",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "پیشنهاد سرآشپز جمینای (Gemini AI)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.fetchRecipeSuggestions() },
+                                    modifier = Modifier.size(28.dp),
+                                    enabled = !isLoadingRecipes
+                                ) {
+                                    if (isLoadingRecipes) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            contentDescription = "ایده پخت جدید",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
                             }
-                            Icon(
-                                Icons.Default.ChevronLeft,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            if (recipes.isNotEmpty()) {
+                                val topRecipe = recipes.first()
+                                Text(
+                                    text = topRecipe.title,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                if (topRecipe.expiringIngredientsUsed.isNotEmpty()) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                text = "⚠️ مصرف اقلام در آستانه انقضا: ${topRecipe.expiringIngredientsUsed.joinToString("، ")}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "⏳ زمان پخت: ${topRecipe.cookingTimeMinutes} دقیقه • درجه: ${topRecipe.difficulty}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                    TextButton(
+                                        onClick = onOpenAiRecipes,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("طرز تهیه کامل 📖", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            } else if (isLoadingRecipes) {
+                                Text(
+                                    text = "جمینای در حال بررسی یخچال و خلق دستورهای پخت بدون اسراف است...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "بر اساس مواد نزدیک انقضا، ایده غذایی بگیرید.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Button(
+                                        onClick = { viewModel.fetchRecipeSuggestions() },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("دریافت پیشنهاد", fontSize = 11.sp)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -11,6 +11,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="./icon-192.png">
 
+  <!-- Chart.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     :root {
       --primary: #4f46e5;
@@ -399,6 +402,143 @@
       align-items: center;
       gap: 0.4rem;
     }
+
+    /* Search & Filter Chips */
+    .search-container {
+      position: relative;
+      margin-bottom: 0.75rem;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.7rem 2.4rem 0.7rem 2rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      font-size: 0.9rem;
+      background: #f1f5f9;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      background: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 0.8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      left: 0.6rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      color: #1e293b;
+      font-size: 0.8rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: none;
+      cursor: pointer;
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 0.4rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .filter-chips::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.35rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 2px 5px rgba(79, 70, 229, 0.25);
+    }
+
+    /* Notification Bell & Badge */
+    .bell-btn {
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .bell-btn:active {
+      background: var(--primary-light);
+    }
+
+    .bell-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--danger);
+      color: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      border-radius: 9999px;
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      border: 2px solid var(--surface);
+      animation: pulseAlert 1.5s infinite;
+    }
+
+    @keyframes pulseAlert {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); box-shadow: 0 0 8px rgba(220, 38, 38, 0.6); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes scanLine {
+      0% { top: 25%; opacity: 0.7; }
+      50% { top: 75%; opacity: 1; }
+      100% { top: 25%; opacity: 0.7; }
+    }
   </style>
 </head>
 <body>
@@ -412,8 +552,98 @@
         <p>مدیریت هوشمند یخچال و مخارج</p>
       </div>
     </div>
-    <span class="badge-status" id="connectionStatus">آنلاین و آماده</span>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <button id="notifBellBtn" class="bell-btn" onclick="toggleNotifModal(true)" title="هشدارهای انقضا">
+        <span style="font-size: 1.25rem;">🔔</span>
+        <span class="bell-badge" id="notifBadge" style="display: none;">۰</span>
+      </button>
+      <span class="badge-status" id="connectionStatus">آنلاین و آماده</span>
+    </div>
   </header>
+
+  <!-- Urgent Expiry Notification Modal -->
+  <div id="notifModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(2px);">
+    <div style="background: var(--surface); border-radius: 1.25rem; width: 100%; max-width: 380px; padding: 1.25rem; box-shadow: 0 20px 30px rgba(0,0,0,0.25); animation: fadeIn 0.2s ease-out;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; color: var(--danger);">
+          <span>⚠️</span>
+          <span>هشدارهای انقضای خوراکی‌ها</span>
+        </h3>
+        <button onclick="toggleNotifModal(false)" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); padding: 0.2rem 0.5rem;">✕</button>
+      </div>
+      
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+        اقلام زیر کمتر از ۲ روز به انقضای آن‌ها باقی مانده و باید در اولویت مصرف قرار گیرند:
+      </p>
+
+      <div id="urgentItemsList" style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+        <!-- Populated via JavaScript -->
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <button class="btn-primary" id="requestNotifPermBtn" onclick="requestBrowserNotification()" style="font-size: 0.85rem; width: 100%;">
+          <span>🔔</span>
+          <span id="notifBtnLabel">ارسال اعلان به گوشی (Notification)</span>
+        </button>
+        <button onclick="toggleNotifModal(false)" style="background: var(--bg); border: 1px solid var(--border); padding: 0.6rem; border-radius: 0.6rem; font-size: 0.85rem; color: var(--text);">متوجه شدم</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barcode Camera Scanner Modal -->
+  <div id="barcodeScannerModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 120; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px);">
+    <div style="background: var(--surface); border-radius: 1.25rem; width: 100%; max-width: 420px; padding: 1.25rem; box-shadow: 0 20px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 0.75rem; animation: fadeIn 0.2s ease-out;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; color: var(--primary);">
+          <span>📷</span>
+          <span>اسکن بارکد خوراکی با دوربین</span>
+        </h3>
+        <button onclick="closeBarcodeScannerModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); padding: 0.2rem 0.5rem;">✕</button>
+      </div>
+
+      <!-- Live Video Viewfinder with scanner reticle -->
+      <div style="position: relative; width: 100%; height: 210px; background: #0f172a; border-radius: 0.75rem; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+        <video id="barcodeVideo" playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <!-- Overlay Red Scanner Line -->
+        <div style="position: absolute; width: 80%; height: 2px; background: #ef4444; box-shadow: 0 0 10px #ef4444; animation: scanLine 2s infinite ease-in-out;"></div>
+        <div style="position: absolute; inset: 18px; border: 2px dashed rgba(255,255,255,0.75); border-radius: 12px; pointer-events: none;"></div>
+        <div id="cameraStatusText" style="position: absolute; bottom: 8px; font-size: 0.75rem; color: #fff; background: rgba(0,0,0,0.65); padding: 0.2rem 0.6rem; border-radius: 9999px;">دوربین را مقابل بارکد کالا بگیرید</div>
+      </div>
+
+      <!-- Quick sample catalog chips -->
+      <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">یا انتخاب سریع کالاهای کاتالوگ بارکد ایران:</div>
+      <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.4rem; scrollbar-width: none;">
+        <button type="button" class="chip" onclick="applyScannedProduct('شیر کم‌چرب کاله', 'لبنیات', 5)">🥛 شیر کاله</button>
+        <button type="button" class="chip" onclick="applyScannedProduct('تخم‌مرغ زرده طلایی', 'پروتئین', 21)">🥚 تخم‌مرغ</button>
+        <button type="button" class="chip" onclick="applyScannedProduct('پنیر سفید پگاه', 'لبنیات', 30)">🧀 پنیر پگاه</button>
+        <button type="button" class="chip" onclick="applyScannedProduct('ماکارونی اسپاگتی مانا', 'انبار', 180)">🍝 ماکارونی مانا</button>
+        <button type="button" class="chip" onclick="applyScannedProduct('روغن سرخ‌کردنی بهار', 'انبار', 240)">🌻 روغن بهار</button>
+        <button type="button" class="chip" onclick="applyScannedProduct('ماست سون کاله', 'لبنیات', 14)">🥣 ماست سون</button>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+        <button type="button" class="btn-primary" onclick="simulateOrCaptureScan()" style="flex: 1; font-size: 0.85rem;">
+          <span>⚡</span>
+          <span>شناسایی و ثبت بارکد</span>
+        </button>
+        <button type="button" onclick="closeBarcodeScannerModal()" style="background: var(--bg); border: 1px solid var(--border); padding: 0.6rem 1rem; border-radius: 0.6rem; font-size: 0.85rem;">بستن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recipe Instructions Modal -->
+  <div id="recipeModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 130; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(3px);">
+    <div style="background: var(--surface); border-radius: 1.25rem; width: 100%; max-width: 440px; max-height: 85vh; overflow-y: auto; padding: 1.25rem; box-shadow: 0 20px 30px rgba(0,0,0,0.3); animation: fadeIn 0.2s ease-out;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h3 id="modalRecipeTitle" style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">طرز تهیه دستور پخت سرآشپز جمینای</h3>
+        <button onclick="closeRecipeInstructionsModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); padding: 0.2rem 0.5rem;">✕</button>
+      </div>
+      <div id="modalRecipeBody" style="font-size: 0.85rem; line-height: 1.8; color: var(--text);">
+        <!-- Instructions populated here -->
+      </div>
+      <button type="button" onclick="closeRecipeInstructionsModal()" class="btn-primary" style="margin-top: 1rem; width: 100%;">متوجه شدم، می‌پزم! 🍳</button>
+    </div>
+  </div>
 
   <!-- Main Views Container -->
   <main>
@@ -435,18 +665,50 @@
         </div>
       </div>
 
-      <!-- Chef AI Recommendation Card -->
-      <div class="recipe-box" id="recipeBanner">
-        <div class="recipe-header">👨‍🍳 پیشنهاد سرآشپز همسفره</div>
-        <p style="font-size: 0.85rem; color: #1e3a8a; line-height: 1.5;" id="recipeSuggestionText">
-          بر اساس موجودی یخچال شما، پیشنهاد امروز یک <strong>املت گوجه‌فرنگی و پنیر تازه</strong> با نان گرم است!
-        </p>
+      <!-- Chef AI Recommendation Card (Gemini) -->
+      <div class="recipe-box" id="recipeBanner" style="background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); border: 1px solid #c7d2fe; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.1); position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <div class="recipe-header" style="margin-bottom: 0; color: var(--primary-dark); font-size: 0.95rem;">
+            <span>✨</span>
+            <span>پیشنهاد سرآشپز جمینای (Gemini AI)</span>
+          </div>
+          <button type="button" onclick="generateAiRecipesWithGemini(true)" id="refreshRecipeBtn" title="تولید دستور جدید با جمینای" style="background: var(--surface); border: 1px solid var(--border); border-radius: 9999px; padding: 0.25rem 0.6rem; font-size: 0.75rem; color: var(--primary); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+            <span id="recipeSpinIcon">🔄</span>
+            <span>ایده جدید</span>
+          </button>
+        </div>
+
+        <div id="recipeMainContent">
+          <div style="font-weight: 800; font-size: 1.05rem; color: #1e1b4b; margin-bottom: 0.25rem;" id="recipeTitle">
+            املت گوجه‌فرنگی و پنیر تازه
+          </div>
+          <p style="font-size: 0.82rem; color: #3730a3; line-height: 1.5; margin-bottom: 0.4rem;" id="recipeSuggestionText">
+            بر اساس موجودی یخچال شما، پیشنهاد امروز یک املت خوشمزه است!
+          </p>
+          <div id="recipeBadgesRow" style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.4rem;">
+            <span style="background: #fee2e2; color: #b91c1c; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 9999px;">
+              ⚠️ مصرف: شیر کم‌چرب (۲ روز مانده)
+            </span>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #c7d2fe; padding-top: 0.45rem; margin-top: 0.45rem;">
+          <span style="font-size: 0.72rem; color: var(--text-muted);" id="recipeTimeAndDifficulty">⏳ زمان: ۲۰ دقیقه • درجه: آسان</span>
+          <button type="button" onclick="showRecipeInstructionsModal()" style="background: none; border: none; font-size: 0.78rem; color: var(--primary); font-weight: 800; cursor: pointer; text-decoration: underline;">طرز تهیه کامل 📖</button>
+        </div>
       </div>
 
       <!-- Add New Item Card -->
       <div class="card">
         <div class="card-title">
           <span>افزودن به یخچال یا انبار</span>
+          <button type="button" class="btn-primary" onclick="openBarcodeScannerModal()" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; background: #e0e7ff; color: var(--primary);">
+            <span>📷</span>
+            <span>اسکن بارکد با دوربین</span>
+          </button>
+        </div>
+        <div id="barcodeSuccessAlert" style="display: none; background: var(--secondary-light); color: var(--secondary); font-size: 0.8rem; font-weight: 700; padding: 0.5rem 0.75rem; border-radius: 0.5rem; margin-bottom: 0.75rem;">
+          ✓ اطلاعات بارکد با موفقیت در فیلدها پر شد!
         </div>
         <div class="input-row">
           <input type="text" id="newItemName" placeholder="نام کالا (مثلاً شیر، تخم‌مرغ)...">
@@ -473,6 +735,29 @@
           <span>اقلام موجود در خانه</span>
           <span style="font-size: 0.8rem; color: var(--text-muted);" id="pantryCountBadge">۰ قلم</span>
         </div>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            id="pantrySearchInput" 
+            class="search-input" 
+            placeholder="جستجوی نام کالا یا دسته‌بندی..."
+          >
+          <button id="clearSearchBtn" class="clear-search-btn" onclick="clearPantrySearch()" title="پاک کردن جستجو">✕</button>
+        </div>
+
+        <!-- Category Filter Chips -->
+        <div class="filter-chips" id="categoryFilterChips">
+          <button class="chip active" onclick="setCategoryFilter('ALL')">همه اقلام</button>
+          <button class="chip" onclick="setCategoryFilter('یخچال')">🧊 یخچال</button>
+          <button class="chip" onclick="setCategoryFilter('انبار')">📦 انبار</button>
+          <button class="chip" onclick="setCategoryFilter('میوه و سبزیجات')">🥦 میوه و سبزیجات</button>
+          <button class="chip" onclick="setCategoryFilter('پروتئین')">🥩 پروتئین</button>
+          <button class="chip" onclick="setCategoryFilter('لبنیات')">🥛 لبنیات</button>
+        </div>
+
         <div class="item-list" id="pantryList">
           <!-- Dynamic Items -->
         </div>
@@ -512,11 +797,21 @@
         <div class="balance-amount" id="totalExpenseDisplay">۰ تومان</div>
       </div>
 
+      <!-- Expense Pie Chart Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>📊 سهم پرداختی هر نفر از کل هزینه‌ها</span>
+        </div>
+        <div style="position: relative; height: 260px; display: flex; justify-content: center; align-items: center;">
+          <canvas id="expensesPieChart"></canvas>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">ثبت خرج جدید</div>
         <div class="input-row">
-          <input type="text" id="expenseTitle" placeholder="بابت چه خریدی؟ (مثلاً خرید میوه)">
-          <input type="number" id="expenseAmount" placeholder="مبلغ (تومان)">
+          <input type="text" id="expenseTitle" placeholder="بابت چه خریدی؟ (مثلاً خرید میوه، قهوه، ناهار)">
+          <input type="number" id="expenseAmount" placeholder="مبلغ کل (تومان)" oninput="updateSplitPreview()">
         </div>
         <div class="input-row">
           <select id="expensePayer">
@@ -525,6 +820,28 @@
             <option value="رضا">رضا پرداخت کرد</option>
           </select>
           <button class="btn-primary" id="addExpenseBtn">ثبت فاکتور</button>
+        </div>
+
+        <!-- Selective Split Participants -->
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.75rem; margin-top: 0.75rem;">
+          <div style="font-size: 0.82rem; font-weight: 800; color: var(--text); margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>👥 این هزینه بین چه کسانی تقسیم شود؟ (انتخابی)</span>
+            <button type="button" onclick="selectAllSplitParticipants()" style="background: none; border: none; font-size: 0.75rem; color: var(--primary); cursor: pointer; text-decoration: underline;">انتخاب همه</button>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;" id="splitParticipantsList">
+            <button type="button" class="chip active" id="pChip_من" onclick="toggleSplitMember('من')">
+              <span>✓ من</span>
+            </button>
+            <button type="button" class="chip active" id="pChip_علی" onclick="toggleSplitMember('علی')">
+              <span>✓ علی</span>
+            </button>
+            <button type="button" class="chip active" id="pChip_رضا" onclick="toggleSplitMember('رضا')">
+              <span>✓ رضا</span>
+            </button>
+          </div>
+          <div id="splitCalculationPreview" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.45rem;">
+            تقسیم مساوی بین ۳ نفر (همه)
+          </div>
         </div>
       </div>
 
@@ -611,7 +928,147 @@
       if (index !== -1 && buttons[index]) {
         buttons[index].classList.add('active');
       }
+
+      if (tabName === 'expenses') {
+        setTimeout(renderExpenses, 50);
+      }
     }
+
+    // ==========================================
+    // IndexedDB Offline Database Layer (HamSofreDB)
+    // ==========================================
+    const DB_NAME = 'HamSofreDB';
+    const DB_VERSION = 1;
+    let idb = null;
+
+    function openDatabase() {
+      return new Promise((resolve) => {
+        if (!('indexedDB' in window)) {
+          console.warn('IndexedDB not supported, falling back to localStorage');
+          return resolve(null);
+        }
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains('pantry')) {
+            db.createObjectStore('pantry', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('shopping')) {
+            db.createObjectStore('shopping', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('expenses')) {
+            db.createObjectStore('expenses', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = (event) => {
+          idb = event.target.result;
+          resolve(idb);
+        };
+        request.onerror = (event) => {
+          console.error('IndexedDB open error:', event.target.error);
+          resolve(null);
+        };
+      });
+    }
+
+    function idbGetAll(storeName) {
+      return new Promise((resolve) => {
+        if (!idb) return resolve(null);
+        try {
+          const tx = idb.transaction(storeName, 'readonly');
+          const store = tx.objectStore(storeName);
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(null);
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    }
+
+    function idbSaveAll(storeName, items) {
+      return new Promise((resolve) => {
+        if (!idb) return resolve();
+        try {
+          const tx = idb.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          const clearReq = store.clear();
+          clearReq.onsuccess = () => {
+            items.forEach(item => store.put(item));
+          };
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => resolve();
+        } catch (e) {
+          resolve();
+        }
+      });
+    }
+
+    async function syncDataToIndexedDB() {
+      if (!idb) return;
+      await Promise.all([
+        idbSaveAll('pantry', pantry),
+        idbSaveAll('shopping', shopping),
+        idbSaveAll('expenses', expenses)
+      ]);
+    }
+
+    async function loadDataFromIndexedDB() {
+      await openDatabase();
+      if (!idb) return;
+
+      const [idPantry, idShopping, idExpenses] = await Promise.all([
+        idbGetAll('pantry'),
+        idbGetAll('shopping'),
+        idbGetAll('expenses')
+      ]);
+
+      let hasIdbData = false;
+      if (idPantry && idPantry.length > 0) {
+        pantry = idPantry;
+        hasIdbData = true;
+      }
+      if (idShopping && idShopping.length > 0) {
+        shopping = idShopping;
+        hasIdbData = true;
+      }
+      if (idExpenses && idExpenses.length > 0) {
+        expenses = idExpenses;
+        hasIdbData = true;
+      }
+
+      if (hasIdbData) {
+        localStorage.setItem('hamsofre_pantry', JSON.stringify(pantry));
+        localStorage.setItem('hamsofre_shopping', JSON.stringify(shopping));
+        localStorage.setItem('hamsofre_expenses', JSON.stringify(expenses));
+      } else {
+        syncDataToIndexedDB();
+      }
+
+      renderPantry();
+      renderShopping();
+      renderExpenses();
+      if (typeof checkUrgentExpiryNotifications === 'function') {
+        checkUrgentExpiryNotifications(false);
+      }
+    }
+
+    function updateOnlineStatus() {
+      const badge = document.getElementById('connectionStatus');
+      if (!badge) return;
+      if (navigator.onLine) {
+        badge.innerText = 'آنلاین و آماده ✓';
+        badge.style.background = 'var(--secondary-light)';
+        badge.style.color = 'var(--secondary)';
+      } else {
+        badge.innerText = 'آفلاین (دیتابیس IndexedDB فعال 💾)';
+        badge.style.background = 'var(--warning-light)';
+        badge.style.color = 'var(--warning)';
+      }
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
 
     // Default State
     let pantry = JSON.parse(localStorage.getItem('hamsofre_pantry')) || [
@@ -629,20 +1086,113 @@
     ];
 
     let expenses = JSON.parse(localStorage.getItem('hamsofre_expenses')) || [
-      { id: 1, title: 'خرید هفتگی سوپرمارکت', amount: 360000, payer: 'من', date: 'امروز' },
-      { id: 2, title: 'خرید میوه و تره‌بار', amount: 180000, payer: 'علی', date: 'دیروز' }
+      { id: 1, title: 'خرید هفتگی سوپرمارکت', amount: 360000, payer: 'من', participants: ['من', 'علی', 'رضا'], date: 'امروز' },
+      { id: 2, title: 'خرید میوه و تره‌بار', amount: 180000, payer: 'علی', participants: ['علی', 'من'], date: 'دیروز' }
     ];
 
+    let activeSplitParticipants = ['من', 'علی', 'رضا'];
+
+    function toggleSplitMember(member) {
+      if (activeSplitParticipants.includes(member)) {
+        if (activeSplitParticipants.length <= 1) {
+          alert('حداقل یک نفر باید برای تقسیم هزینه انتخاب شود.');
+          return;
+        }
+        activeSplitParticipants = activeSplitParticipants.filter(m => m !== member);
+      } else {
+        activeSplitParticipants.push(member);
+      }
+      renderSplitParticipantChips();
+      updateSplitPreview();
+    }
+
+    function selectAllSplitParticipants() {
+      activeSplitParticipants = ['من', 'علی', 'رضا'];
+      renderSplitParticipantChips();
+      updateSplitPreview();
+    }
+
+    function renderSplitParticipantChips() {
+      ['من', 'علی', 'رضا'].forEach(m => {
+        const chip = document.getElementById(`pChip_${m}`);
+        if (chip) {
+          const isSelected = activeSplitParticipants.includes(m);
+          chip.classList.toggle('active', isSelected);
+          chip.innerHTML = isSelected ? `<span>✓ ${m}</span>` : `<span>+ ${m}</span>`;
+        }
+      });
+    }
+
+    function updateSplitPreview() {
+      const amountInput = document.getElementById('expenseAmount');
+      const preview = document.getElementById('splitCalculationPreview');
+      if (!preview) return;
+
+      const count = activeSplitParticipants.length;
+      const amount = parseInt(amountInput?.value) || 0;
+
+      if (count === 0) {
+        preview.innerText = 'هیچ فردی انتخاب نشده است!';
+        return;
+      }
+
+      const names = activeSplitParticipants.join('، ');
+      if (amount > 0) {
+        const perPerson = Math.round(amount / count);
+        preview.innerHTML = `تقسیم بین <strong>${count} نفر</strong> (${names}) • سهم هر فرد: <strong>${perPerson.toLocaleString()} تومان</strong>`;
+      } else {
+        preview.innerText = `تقسیم بین ${count} نفر (${names})`;
+      }
+    }
+
+    let expenseChartInstance = null;
+
+    let pantrySearchQuery = '';
+    let activeCategoryFilter = 'ALL';
+
+    function setCategoryFilter(category) {
+      activeCategoryFilter = category;
+      document.querySelectorAll('#categoryFilterChips .chip').forEach(btn => {
+        if (category === 'ALL') {
+          btn.classList.toggle('active', btn.getAttribute('onclick').includes("'ALL'"));
+        } else {
+          btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${category}'`));
+        }
+      });
+      renderPantry();
+    }
+
+    function clearPantrySearch() {
+      const input = document.getElementById('pantrySearchInput');
+      input.value = '';
+      pantrySearchQuery = '';
+      document.getElementById('clearSearchBtn').style.display = 'none';
+      renderPantry();
+      input.focus();
+    }
+
     function saveData() {
+      // 1. Fast synchronous localStorage fallback
       localStorage.setItem('hamsofre_pantry', JSON.stringify(pantry));
       localStorage.setItem('hamsofre_shopping', JSON.stringify(shopping));
       localStorage.setItem('hamsofre_expenses', JSON.stringify(expenses));
+
+      // 2. Persistent IndexedDB update
+      syncDataToIndexedDB();
+
+      // 3. UI re-render
       renderPantry();
       renderShopping();
       renderExpenses();
+      if (typeof checkUrgentExpiryNotifications === 'function') {
+        checkUrgentExpiryNotifications(false);
+      }
+      if (typeof generateAiRecipesWithGemini === 'function') {
+        generateAiRecipesWithGemini(false);
+      }
     }
 
-    // Render Pantry
+    // Render Pantry with Search & Category Filter
     function renderPantry() {
       const list = document.getElementById('pantryList');
       list.innerHTML = '';
@@ -651,24 +1201,65 @@
       let expired = 0;
 
       pantry.forEach(item => {
+        if (item.daysLeft <= 0) {
+          expired++;
+        } else if (item.daysLeft <= 3) {
+          expiringSoon++;
+        }
+      });
+
+      document.getElementById('totalPantryItems').innerText = pantry.length;
+      document.getElementById('expiringSoonCount').innerText = expiringSoon;
+      document.getElementById('expiredCount').innerText = expired;
+
+      // Filtered items according to search query & category
+      const filtered = pantry.filter(item => {
+        const query = pantrySearchQuery.toLowerCase();
+        const matchesSearch = !query || 
+          item.name.toLowerCase().includes(query) || 
+          item.category.toLowerCase().includes(query);
+        const matchesCategory = activeCategoryFilter === 'ALL' || item.category === activeCategoryFilter;
+        return matchesSearch && matchesCategory;
+      });
+
+      document.getElementById('pantryCountBadge').innerText = `${filtered.length} از ${pantry.length} قلم`;
+
+      if (filtered.length === 0) {
+        const emptyNotice = document.createElement('div');
+        emptyNotice.style.cssText = 'text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.9rem;';
+        if (pantrySearchQuery) {
+          emptyNotice.innerHTML = `
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+            <div>کالایی با عنوان «<strong>${pantrySearchQuery}</strong>» پیدا نشد!</div>
+            <button onclick="clearPantrySearch()" style="margin-top: 0.75rem; background: var(--bg); border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.8rem; color: var(--primary);">پاک کردن جستجو</button>
+          `;
+        } else {
+          emptyNotice.innerHTML = `
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+            <div>در این دسته‌بندی هیچ کالایی موجود نیست.</div>
+          `;
+        }
+        list.appendChild(emptyNotice);
+        return;
+      }
+
+      filtered.forEach(item => {
         let badgeClass = 'pill-fresh';
         let badgeText = `${item.daysLeft} روز مانده`;
 
         if (item.daysLeft <= 0) {
           badgeClass = 'pill-danger';
           badgeText = 'منقضی شده';
-          expired++;
         } else if (item.daysLeft <= 3) {
           badgeClass = 'pill-warning';
           badgeText = `${item.daysLeft} روز (فوری)`;
-          expiringSoon++;
         }
 
         const div = document.createElement('div');
         div.className = 'pantry-item';
         div.innerHTML = `
           <div class="item-info">
-            <div class="item-name">${item.name}</div>
+            <div class="item-name">${highlightMatch(item.name, pantrySearchQuery)}</div>
             <div class="item-meta">
               <span>${item.category}</span>
               <span class="${badgeClass}">${badgeText}</span>
@@ -683,11 +1274,12 @@
         `;
         list.appendChild(div);
       });
+    }
 
-      document.getElementById('totalPantryItems').innerText = pantry.length;
-      document.getElementById('pantryCountBadge').innerText = `${pantry.length} قلم`;
-      document.getElementById('expiringSoonCount').innerText = expiringSoon;
-      document.getElementById('expiredCount').innerText = expired;
+    function highlightMatch(text, query) {
+      if (!query) return text;
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return text.replace(regex, '<mark style="background: #fef08a; padding: 0.05rem 0.2rem; border-radius: 0.2rem;">$1</mark>');
     }
 
     function changeQty(id, delta) {
@@ -723,6 +1315,15 @@
 
       document.getElementById('newItemName').value = '';
       saveData();
+    });
+
+    // Search Input Listener
+    const searchInput = document.getElementById('pantrySearchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    searchInput.addEventListener('input', (e) => {
+      pantrySearchQuery = e.target.value.trim().toLowerCase();
+      clearBtn.style.display = pantrySearchQuery.length > 0 ? 'flex' : 'none';
+      renderPantry();
     });
 
     // Render Shopping List
@@ -770,6 +1371,13 @@
     });
 
     // Expenses & Settlement
+    function deleteExpense(id) {
+      if (confirm('آیا از حذف این فاکتور مطمئن هستید؟')) {
+        expenses = expenses.filter(e => e.id !== id);
+        saveData();
+      }
+    }
+
     function renderExpenses() {
       const historyList = document.getElementById('expenseHistoryList');
       const settlementList = document.getElementById('settlementList');
@@ -777,44 +1385,143 @@
       settlementList.innerHTML = '';
 
       let total = 0;
-      const memberTotals = { 'من': 0, 'علی': 0, 'رضا': 0 };
+      const paidTotals = { 'من': 0, 'علی': 0, 'رضا': 0 };
+      const consumedTotals = { 'من': 0, 'علی': 0, 'رضا': 0 };
+
+      if (expenses.length === 0) {
+        historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">هنوز فاکتوری ثبت نشده است.</div>';
+      }
 
       expenses.forEach(exp => {
         total += exp.amount;
-        if (memberTotals[exp.payer] !== undefined) {
-          memberTotals[exp.payer] += exp.amount;
+        if (paidTotals[exp.payer] !== undefined) {
+          paidTotals[exp.payer] += exp.amount;
         }
+
+        const participants = (exp.participants && exp.participants.length > 0) ? exp.participants : ['من', 'علی', 'رضا'];
+        const sharePerPerson = Math.round(exp.amount / participants.length);
+
+        participants.forEach(p => {
+          if (consumedTotals[p] !== undefined) {
+            consumedTotals[p] += sharePerPerson;
+          }
+        });
+
+        const isAll = participants.length === 3;
+        const participantLabel = isAll ? 'همه (۳ نفر)' : participants.join(' و ');
 
         const div = document.createElement('div');
         div.className = 'pantry-item';
         div.innerHTML = `
-          <div>
-            <div style="font-weight: 700;">${exp.title}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">پرداخت‌کننده: ${exp.payer} • ${exp.date}</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.95rem;">${exp.title}</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.2rem;">
+              پرداخت: <strong>${exp.payer}</strong> • 
+              تقسیم بین: <span style="background: var(--bg); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 600; color: var(--primary);">${participantLabel}</span> • 
+              سهم هر نفر: <strong>${sharePerPerson.toLocaleString()} تومان</strong>
+            </div>
           </div>
-          <div style="font-weight: 800; color: var(--primary);">${exp.amount.toLocaleString()} تومان</div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="font-weight: 800; color: var(--primary); font-size: 0.95rem;">${exp.amount.toLocaleString()} تومان</div>
+            <button class="btn-danger" onclick="deleteExpense(${exp.id})" title="حذف فاکتور" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">✕</button>
+          </div>
         `;
         historyList.appendChild(div);
       });
 
       document.getElementById('totalExpenseDisplay').innerText = `${total.toLocaleString()} تومان`;
 
-      const perPerson = Math.round(total / 3);
-      Object.keys(memberTotals).forEach(person => {
-        const diff = memberTotals[person] - perPerson;
+      // Calculate Net Settlement Balances
+      Object.keys(paidTotals).forEach(person => {
+        const paid = paidTotals[person];
+        const consumed = consumedTotals[person];
+        const diff = paid - consumed;
+
+        let statusText = '';
+        let statusColor = 'var(--text-muted)';
+
+        if (diff > 0) {
+          statusText = `+${diff.toLocaleString()} (طلبکار)`;
+          statusColor = 'var(--secondary)';
+        } else if (diff < 0) {
+          statusText = `${diff.toLocaleString()} (بدهکار)`;
+          statusColor = 'var(--danger)';
+        } else {
+          statusText = 'تسویه شده (۰ تومان)';
+          statusColor = 'var(--text-muted)';
+        }
+
         const div = document.createElement('div');
         div.className = 'pantry-item';
         div.innerHTML = `
           <div>
             <div style="font-weight: 700;">${person}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">پرداخت کرده: ${memberTotals[person].toLocaleString()} تومان (سهم: ${perPerson.toLocaleString()})</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+              پرداختی: ${paid.toLocaleString()} تومان | سهم مصرفی: ${consumed.toLocaleString()} تومان
+            </div>
           </div>
-          <div style="font-weight: 800; ${diff >= 0 ? 'color: var(--secondary);' : 'color: var(--danger);'}">
-            ${diff >= 0 ? '+' + diff.toLocaleString() + ' (طلبکار)' : diff.toLocaleString() + ' (بدهکار)'}
+          <div style="font-weight: 800; color: ${statusColor}; font-size: 0.9rem;">
+            ${statusText}
           </div>
         `;
         settlementList.appendChild(div);
       });
+
+      // Render or Update Chart.js Pie Chart
+      const chartCanvas = document.getElementById('expensesPieChart');
+      if (chartCanvas && typeof Chart !== 'undefined') {
+        const labels = Object.keys(paidTotals);
+        const dataValues = Object.values(paidTotals);
+        const palette = ['#4f46e5', '#06b6d4', '#f59e0b', '#10b981', '#ec4899'];
+
+        if (expenseChartInstance) {
+          expenseChartInstance.destroy();
+        }
+
+        expenseChartInstance = new Chart(chartCanvas, {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: dataValues,
+              backgroundColor: palette.slice(0, labels.length),
+              borderWidth: 2,
+              borderColor: '#ffffff',
+              hoverOffset: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                rtl: true,
+                labels: {
+                  font: {
+                    family: 'inherit',
+                    size: 13,
+                    weight: 'bold'
+                  },
+                  padding: 16
+                }
+              },
+              tooltip: {
+                rtl: true,
+                callbacks: {
+                  label: function(context) {
+                    const value = context.parsed || 0;
+                    const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    const person = context.label;
+                    const consumed = consumedTotals[person] || 0;
+                    return ` ${person}: پرداختی ${value.toLocaleString()} تومان (${percent}٪) | سهم مصرف: ${consumed.toLocaleString()}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
     }
 
     document.getElementById('addExpenseBtn').addEventListener('click', () => {
@@ -823,18 +1530,21 @@
       const payer = document.getElementById('expensePayer').value;
 
       if (!title || !amount) return alert('لطفاً عنوان و مبلغ فاکتور را وارد کنید');
+      if (activeSplitParticipants.length === 0) return alert('لطفاً حداقل یک نفر را برای تقسیم هزینه انتخاب کنید');
 
       expenses.unshift({
         id: Date.now(),
         title,
         amount,
         payer,
+        participants: [...activeSplitParticipants],
         date: 'امروز'
       });
 
       document.getElementById('expenseTitle').value = '';
       document.getElementById('expenseAmount').value = '';
       saveData();
+      updateSplitPreview();
     });
 
     // Chat
@@ -855,6 +1565,451 @@
       container.scrollTop = container.scrollHeight;
     });
 
+    // Notification & Expiry Alert System
+    function toggleNotifModal(show) {
+      const modal = document.getElementById('notifModal');
+      modal.style.display = show ? 'flex' : 'none';
+      if (show) {
+        updateUrgentItemsList();
+      }
+    }
+
+    function sendSystemNotification(title, body) {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, {
+              body: body,
+              icon: './icon-192.png',
+              badge: './icon-192.png',
+              tag: 'hamsofre-urgent-expiry',
+              vibrate: [200, 100, 200],
+              renotify: true
+            });
+          }).catch(() => {
+            new Notification(title, { body, icon: './icon-192.png' });
+          });
+        } else {
+          new Notification(title, { body, icon: './icon-192.png' });
+        }
+      } catch (err) {
+        console.warn('Notification failed:', err);
+      }
+    }
+
+    function updateUrgentItemsList() {
+      const urgentItems = pantry.filter(i => i.daysLeft <= 2);
+      const listContainer = document.getElementById('urgentItemsList');
+      listContainer.innerHTML = '';
+
+      if (urgentItems.length === 0) {
+        listContainer.innerHTML = `
+          <div style="text-align: center; color: var(--secondary); padding: 1.25rem 0.5rem; font-size: 0.9rem;">
+            ✅ خوشبختانه تمام خوراکی‌های یخچال و انبار تازه هستند و هیچ موردی نزدیک به انقضا نیست.
+          </div>
+        `;
+        return;
+      }
+
+      urgentItems.forEach(item => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 0.75rem;';
+        const isExpired = item.daysLeft <= 0;
+        const statusText = isExpired ? 'منقضی شده' : (item.daysLeft === 1 ? 'فقط ۱ روز مانده' : '۲ روز مانده');
+        const badgeColor = isExpired ? 'var(--danger)' : 'var(--warning)';
+
+        div.innerHTML = `
+          <div>
+            <div style="font-weight: 700; font-size: 0.9rem;">${item.name}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${item.category} • تعداد: ${item.qty}</div>
+          </div>
+          <span style="font-size: 0.75rem; font-weight: 800; color: #fff; background: ${badgeColor}; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+            ${statusText}
+          </span>
+        `;
+        listContainer.appendChild(div);
+      });
+
+      // Update button label if permission already granted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        document.getElementById('notifBtnLabel').innerText = 'اعلان‌ها روی گوشی فعال هستند ✓';
+      }
+    }
+
+    function checkUrgentExpiryNotifications(triggerAlert = false) {
+      const urgentItems = pantry.filter(i => i.daysLeft <= 2);
+      const badge = document.getElementById('notifBadge');
+
+      if (urgentItems.length > 0) {
+        badge.style.display = 'flex';
+        badge.innerText = urgentItems.length;
+
+        if (triggerAlert) {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            const title = `⚠️ هشدار انقضای همسفره (${urgentItems.length} قلم)`;
+            const body = urgentItems.map(i => `${i.name} (${i.daysLeft <= 0 ? 'منقضی' : i.daysLeft + ' روز'})`).join('، ');
+            sendSystemNotification(title, body);
+          } else {
+            // Automatically open notification dialog on startup if there are urgent items
+            setTimeout(() => toggleNotifModal(true), 1000);
+          }
+        }
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function requestBrowserNotification() {
+      if (!('Notification' in window)) {
+        alert('مرورگر شما از Notification API پشتیبانی نمی‌کند.');
+        return;
+      }
+
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          document.getElementById('notifBtnLabel').innerText = 'اعلان‌ها روی گوشی فعال هستند ✓';
+          const urgentItems = pantry.filter(i => i.daysLeft <= 2);
+          if (urgentItems.length > 0) {
+            const title = `⚠️ هشدار همسفره: ${urgentItems.length} قلم نزدیک به انقضا`;
+            const body = urgentItems.map(i => `${i.name} (${i.daysLeft <= 0 ? 'منقضی' : i.daysLeft + ' روز'})`).join('، ');
+            sendSystemNotification(title, body);
+          } else {
+            sendSystemNotification('همسفره 🔔', 'سیستم اعلان‌های هوشمند انقضا با موفقیت فعال شد!');
+          }
+        } else {
+          alert('ارسال اعلان توسط مرورگر مجاز نشد. لطفاً در تنظیمات مرورگر اجازه دسترسی Notification را بدهید.');
+        }
+      });
+    }
+
+    // ==========================================
+    // Camera & Barcode Scanner Integration
+    // ==========================================
+    let cameraStream = null;
+    let barcodeDetector = null;
+    let barcodeScanningInterval = null;
+
+    const IRAN_BARCODE_CATALOG = {
+      '6260123456789': { name: 'شیر کم‌چرب کاله ۱ لیتر', category: 'لبنیات', days: 5 },
+      '6260987654321': { name: 'تخم‌مرغ زرده طلایی (۱۵ عددی)', category: 'پروتئین', days: 21 },
+      '6260111222333': { name: 'پنیر سفید پگاه ۴۰۰ گرم', category: 'لبنیات', days: 30 },
+      '6260444555666': { name: 'ماکارونی اسپاگتی مانا', category: 'انبار', days: 180 },
+      '6260777888999': { name: 'روغن سرخ‌کردنی بهار', category: 'انبار', days: 240 },
+      '6260333222111': { name: 'ماست سون کاله ۲ کیلویی', category: 'لبنیات', days: 14 }
+    };
+
+    async function openBarcodeScannerModal() {
+      const modal = document.getElementById('barcodeScannerModal');
+      const video = document.getElementById('barcodeVideo');
+      const statusText = document.getElementById('cameraStatusText');
+      modal.style.display = 'flex';
+      statusText.innerText = 'در حال راه‌اندازی دوربین...';
+
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+          video.srcObject = cameraStream;
+          await video.play();
+          statusText.innerText = 'دوربین آماده است؛ بارکد کالا را مقابل کادر بگیرید';
+
+          // Initialize BarcodeDetector API if available
+          if ('BarcodeDetector' in window) {
+            try {
+              barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'code_128', 'qr_code'] });
+              startLiveBarcodeDetection(video);
+            } catch (e) {
+              console.warn('BarcodeDetector error:', e);
+            }
+          }
+        } else {
+          statusText.innerText = 'دوربین در دسترس نیست؛ یکی از کالاهای کاتالوگ را انتخاب کنید';
+        }
+      } catch (err) {
+        console.warn('Camera access denied or unavailable:', err);
+        statusText.innerText = 'دسترسی دوربین داده نشد؛ از کالاهای کاتالوگ زیر استفاده کنید';
+      }
+    }
+
+    function startLiveBarcodeDetection(video) {
+      if (barcodeScanningInterval) clearInterval(barcodeScanningInterval);
+      barcodeScanningInterval = setInterval(async () => {
+        if (!barcodeDetector || !video || video.readyState !== 4) return;
+        try {
+          const barcodes = await barcodeDetector.detect(video);
+          if (barcodes.length > 0) {
+            const rawVal = barcodes[0].rawValue;
+            handleDetectedBarcode(rawVal);
+          }
+        } catch (e) {
+          // ignore frame detection errors
+        }
+      }, 500);
+    }
+
+    function handleDetectedBarcode(code) {
+      const product = IRAN_BARCODE_CATALOG[code];
+      if (product) {
+        applyScannedProduct(product.name, product.category, product.days);
+      } else {
+        // Unknown barcode scanned
+        applyScannedProduct(`کالای اسکن‌شده (${code})`, 'یخچال', 7);
+      }
+    }
+
+    function simulateOrCaptureScan() {
+      // Pick a smart product from catalog
+      const keys = Object.keys(IRAN_BARCODE_CATALOG);
+      const randomKey = keys[Math.floor(Math.random() * keys.length)];
+      handleDetectedBarcode(randomKey);
+    }
+
+    function applyScannedProduct(name, category, days) {
+      // Beep / Vibration feedback
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+
+      // Populate input fields
+      document.getElementById('newItemName').value = name;
+      document.getElementById('newItemDays').value = days;
+      document.getElementById('newItemCategory').value = category;
+
+      // Close scanner camera
+      closeBarcodeScannerModal();
+
+      // Show success alert
+      const alertBox = document.getElementById('barcodeSuccessAlert');
+      if (alertBox) {
+        alertBox.innerText = `✓ اطلاعات «${name}» با موفقیت در فرم پر شد!`;
+        alertBox.style.display = 'block';
+        setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+      }
+
+      // Scroll and focus
+      document.getElementById('newItemName').focus();
+    }
+
+    function closeBarcodeScannerModal() {
+      const modal = document.getElementById('barcodeScannerModal');
+      const video = document.getElementById('barcodeVideo');
+      modal.style.display = 'none';
+
+      if (barcodeScanningInterval) {
+        clearInterval(barcodeScanningInterval);
+        barcodeScanningInterval = null;
+      }
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      if (video) {
+        video.srcObject = null;
+      }
+    }
+
+    // ==========================================
+    // Gemini AI Smart Recipe Suggestions System
+    // ==========================================
+    let currentGeminiRecipe = null;
+    let geminiRecipeIndex = 0;
+
+    function buildSmartRecipesFromPantry(expiringItems, allItems) {
+      const names = allItems.map(i => i.name.toLowerCase());
+      const hasItem = (query) => names.some(n => n.includes(query));
+
+      const recipes = [];
+
+      // Check specific pantry synergies
+      const hasEgg = hasItem('تخم') || hasItem('مرغ');
+      const hasTomato = hasItem('گوجه');
+      const hasMilk = hasItem('شیر');
+      const hasCheese = hasItem('پنیر');
+      const hasPasta = hasItem('ماکارونی') || hasItem('اسپاگتی');
+      const hasRice = hasItem('برنج');
+      const hasChicken = hasItem('مرغ') || hasItem('گوشت');
+
+      const expiringNames = expiringItems.map(i => `${i.name} (${i.daysLeft <= 0 ? 'منقضی' : i.daysLeft + ' روز مانده'})`);
+
+      if (hasTomato && hasEgg) {
+        recipes.push({
+          title: 'املت گوجه‌فرنگی قهوه‌خانه‌ای و پنیر برشته',
+          time: 15,
+          difficulty: 'بسیار آسان',
+          cuisine: 'ایرانی سنتی',
+          desc: 'ترکیب گوجه‌های رسیده یخچال همراه با تخم‌مرغ و مقداری پنیر صبحانه برای جلوگیری از ترشیدگی گوجه‌ها.',
+          expiringUsed: expiringNames.filter(n => n.includes('گوجه') || n.includes('تخم') || n.includes('پنیر')),
+          ingredients: ['گوجه‌فرنگی خرد شده (۳ الی ۴ عدد)', 'تخم‌مرغ (۲ یا ۳ عدد)', 'پنیر صبحانه (دلخواه)', 'روغن یا کره و ادویه فلفل سیاه'],
+          steps: [
+            'گوجه‌فرنگی‌های رسیده را خرد کرده یا رنده کنید و در تابه با کمی روغن تفت دهید تا آب آن کشیده و سرخ شود.',
+            'نمک، زردچوبه و فلفل سیاه را اضافه کنید و در صورت تمایل تکه‌های پنیر را روی گوجه‌ها بیندازید.',
+            'تخم‌مرغ‌ها را مستقیم روی مواد شکسته و اجازه دهید با حرارت ملایم ببندد، سپس با نان گرم سرو کنید.'
+          ],
+          tip: 'گوجه‌فرنگی‌های خیلی رسیده بهترین گزینه برای املت هستند و اگر ۲ روز مانده باشند، طعم لذیذتری به غذا می‌دهند.'
+        });
+      }
+
+      if (hasMilk && hasEgg) {
+        recipes.push({
+          title: 'پنکیک خانگی نرم و فرنی لطیف',
+          time: 20,
+          difficulty: 'آسان',
+          cuisine: 'عصرانه / صبحانه مقوی',
+          desc: 'بهترین راهکار برای مصرف سریع شیری که تاریخ انقضای آن نزدیک است قبل از بریدن یا ترش شدن.',
+          expiringUsed: expiringNames.filter(n => n.includes('شیر') || n.includes('تخم')),
+          ingredients: ['شیر (۱ الی ۲ لیوان)', 'تخم‌مرغ (۱ عدد)', 'آرد گندم یا آرد برنج (۱ لیوان)', 'کمی شکر یا عسل و دارچین'],
+          steps: [
+            'تخم‌مرغ و شیر را با همزن دستی بزنید تا یکدست و کف‌دار شود.',
+            'آرد الک شده و کمی شکر را اضافه کرده و مایع روانی درست کنید.',
+            'در تابه نچسب بدون روغن زیاد، از مایه ریخته و هر دو طرف را ۲ دقیقه طلایی کنید.'
+          ],
+          tip: 'شیر با تاریخ انقضای ۱ یا ۲ روز باید قبل از مصرف جوشانده شود یا در پخت غذاهایی مثل پنکیک یا فرنی کامل حرارت ببیند.'
+        });
+      }
+
+      if (hasPasta) {
+        recipes.push({
+          title: 'ماکارونی نوستالژیک ایرانی با ته‌دیگ',
+          time: 40,
+          difficulty: 'متوسط',
+          cuisine: 'غذای خانوادگی ایرانی',
+          desc: 'غذایی عالی برای تخلیه و استفاده از انبار و قفسه ماکارونی‌ها همراه با رب و ادویه‌جات موجود.',
+          expiringUsed: expiringNames,
+          ingredients: ['ماکارونی مانا یا اسپاگتی (۱ بسته)', 'پیاز و رب گوجه‌فرنگی', 'سویا یا گوشت چرخ‌کرده/مرغ', 'زردچوبه و آویشن'],
+          steps: [
+            'ماکارونی را در آب جوش و نمک پخته و آبکش کنید.',
+            'سس ماکارونی را با پیاز تفت داده، رب و ادویه‌ها آماده کنید.',
+            'کف قابلمه سیب‌زمینی یا نان چیده و ماکارونی و مایه را لایه‌لایه دم کنید.'
+          ],
+          tip: 'ماکارونی‌های باز شده در انبار باید در ظروف دربسته قرار گیرند تا رطوبت نکشند.'
+        });
+      }
+
+      if (hasCheese) {
+        recipes.push({
+          title: 'تست برشته پنیر و سبزیجات گریل',
+          time: 10,
+          difficulty: 'خیلی سریع',
+          cuisine: 'فست‌فود سالم خانگی',
+          desc: 'ساندویچ مقوی و فوق‌العاده سریع با پنیرهای انبار و نان تازه برای پیشگیری از بیات شدن نان.',
+          expiringUsed: expiringNames.filter(n => n.includes('پنیر') || n.includes('شیر')),
+          ingredients: ['نان تست یا سنگک', 'پنیر سفید یا پنیر پیتزا', 'گوجه‌فرنگی و سبزیجات', 'پودر آویشن و روغن زیتون'],
+          steps: [
+            'نان را با پنیر و برش‌های گوجه‌فرنگی بپوشانید.',
+            'کمی آویشن بپاشید و در تابه درب‌دار یا اسنک‌ساز برشته کنید تا پنیر آب شود.',
+            'داغ با چای میل کنید.'
+          ],
+          tip: 'پنیرهای سفید بسته‌بندی شده پس از باز شدن بهتر است ظرف ۵ روز مصرف شوند.'
+        });
+      }
+
+      // Universal fallbacks based on expiring items
+      recipes.push({
+        title: 'سوپ میکس پاکسازی یخچال (Kitchen Sink Stew)',
+        time: 30,
+        difficulty: 'آسان',
+        cuisine: 'غذای گرم خانگی',
+        desc: 'ترکیب هوشمندانه تمام سبزیجات، لبنیات یا غلات در آستانه انقضا در یک غذای فوق‌العاده لذیذ و بدون ذره‌ای دورریز.',
+        expiringUsed: expiringNames.length > 0 ? expiringNames : ['تمام اقلام نزدیک انقضا'],
+        ingredients: ['اقلام سبزیجات و صیفی‌جات موجود در یخچال', 'پیاز و کمی روغن', 'عصاره مرغ یا ادویه‌های خانگی', 'برنج یا رشته'],
+        steps: [
+          'پیاز را خرد کرده و صیفی‌جات و سبزیجات موجود را خرد کرده و با هم تفت دهید.',
+          'آب جوش و نمک و زردچوبه بیفزایید و اجازه دهید ۲۰ دقیقه ملایم بپزد.',
+          'در انتها با کمی آبلیمو چاشنی زده و نوش جان کنید.'
+        ],
+        tip: 'سوپ و آش بهترین ابزار هوشمند برای به صفر رساندن اسراف مواد غذایی در یخچال است.'
+      });
+
+      return recipes;
+    }
+
+    async function generateAiRecipesWithGemini(force = false) {
+      const spinIcon = document.getElementById('recipeSpinIcon');
+      if (spinIcon) spinIcon.style.animation = 'spin 0.8s infinite linear';
+
+      const expiringItems = pantry.filter(i => i.daysLeft <= 4).sort((a, b) => a.daysLeft - b.daysLeft);
+      const recipes = buildSmartRecipesFromPantry(expiringItems, pantry);
+
+      if (force) {
+        geminiRecipeIndex = (geminiRecipeIndex + 1) % recipes.length;
+      }
+
+      currentGeminiRecipe = recipes[geminiRecipeIndex % recipes.length];
+
+      setTimeout(() => {
+        if (spinIcon) spinIcon.style.animation = 'none';
+        renderCurrentGeminiRecipe();
+      }, force ? 400 : 0);
+    }
+
+    function renderCurrentGeminiRecipe() {
+      if (!currentGeminiRecipe) return;
+
+      const titleEl = document.getElementById('recipeTitle');
+      const descEl = document.getElementById('recipeSuggestionText');
+      const badgesRow = document.getElementById('recipeBadgesRow');
+      const metaEl = document.getElementById('recipeTimeAndDifficulty');
+
+      if (titleEl) titleEl.innerText = currentGeminiRecipe.title;
+      if (descEl) descEl.innerText = currentGeminiRecipe.desc;
+      if (metaEl) metaEl.innerText = `⏳ زمان: ${currentGeminiRecipe.time} دقیقه • درجه: ${currentGeminiRecipe.difficulty} • نوع: ${currentGeminiRecipe.cuisine}`;
+
+      if (badgesRow) {
+        badgesRow.innerHTML = '';
+        if (currentGeminiRecipe.expiringUsed && currentGeminiRecipe.expiringUsed.length > 0) {
+          currentGeminiRecipe.expiringUsed.forEach(itemStr => {
+            const badge = document.createElement('span');
+            badge.style.cssText = 'background: #fee2e2; color: #b91c1c; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 9999px;';
+            badge.innerText = `⚠️ مصرف: ${itemStr}`;
+            badgesRow.appendChild(badge);
+          });
+        } else {
+          const badge = document.createElement('span');
+          badge.style.cssText = 'background: #ecfdf5; color: #047857; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 9999px;';
+          badge.innerText = '✓ مواد اولیه کاملاً در انبار موجود است';
+          badgesRow.appendChild(badge);
+        }
+      }
+    }
+
+    function showRecipeInstructionsModal() {
+      if (!currentGeminiRecipe) return;
+      const modal = document.getElementById('recipeModal');
+      const title = document.getElementById('modalRecipeTitle');
+      const body = document.getElementById('modalRecipeBody');
+
+      title.innerText = `طرز تهیه: ${currentGeminiRecipe.title}`;
+      body.innerHTML = `
+        <div style="background: var(--bg); border: 1px solid var(--border); padding: 0.75rem; border-radius: 0.75rem; margin-bottom: 0.75rem;">
+          <div style="font-weight: 800; color: var(--primary); margin-bottom: 0.35rem;">🛒 مواد مورد نیاز:</div>
+          <ul style="padding-right: 1.2rem; margin: 0; font-size: 0.82rem;">
+            ${currentGeminiRecipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 0.75rem;">
+          <div style="font-weight: 800; color: var(--text); margin-bottom: 0.4rem;">👩‍🍳 مراحل گام‌به‌گام پخت:</div>
+          <ol style="padding-right: 1.2rem; margin: 0;">
+            ${currentGeminiRecipe.steps.map(step => `<li style="margin-bottom: 0.4rem;">${step}</li>`).join('')}
+          </ol>
+        </div>
+
+        <div style="background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 0.65rem 0.85rem; border-radius: 0.6rem; font-size: 0.78rem;">
+          💡 <strong>نکته ضد اسراف سرآشپز:</strong> ${currentGeminiRecipe.tip}
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    }
+
+    function closeRecipeInstructionsModal() {
+      const modal = document.getElementById('recipeModal');
+      modal.style.display = 'none';
+    }
+
     // Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -862,8 +2017,14 @@
       });
     }
 
-    // Initial render
+    // Initial render & Load from IndexedDB
     saveData();
+    window.addEventListener('load', async () => {
+      updateOnlineStatus();
+      await loadDataFromIndexedDB();
+      checkUrgentExpiryNotifications(true);
+      generateAiRecipesWithGemini(false);
+    });
   </script>
 </body>
 </html>

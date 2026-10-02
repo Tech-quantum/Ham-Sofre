@@ -331,8 +331,22 @@ class MainActivity : ComponentActivity() {
                         BarcodeScannerDialog(
                             onDismissRequest = { showBarcodeScanner = false },
                             onBarcodeScanned = { barcode, productInfo ->
-                                viewModel.showMessage("«${productInfo.name}» با موفقیت در انبار ثبت شد. ✔")
                                 showBarcodeScanner = false
+                                val defaultBuyer = members.firstOrNull()?.id ?: 1L
+                                val expiryTime = System.currentTimeMillis() + (productInfo.shelfLifeDays * 24L * 60 * 60 * 1000)
+                                scannedProductForAdd = FoodItem(
+                                    name = productInfo.name,
+                                    barcode = barcode,
+                                    category = productInfo.category,
+                                    location = productInfo.defaultLocation,
+                                    quantity = productInfo.defaultQuantity,
+                                    unit = productInfo.defaultUnit,
+                                    expiryDateMillis = expiryTime,
+                                    price = productInfo.estimatedPrice,
+                                    purchasedByMemberId = defaultBuyer,
+                                    purchaseDateMillis = System.currentTimeMillis()
+                                )
+                                viewModel.showMessage("اطلاعات «${productInfo.name}» با موفقیت در فیلدهای کالا پر شد. 📷")
                             }
                         )
                     }
