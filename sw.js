@@ -1,5 +1,5 @@
 const CACHE = 'hamsofre-v1';
-const CORE = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -15,7 +15,7 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || !req.url.startsWith(self.location.origin)) return;
+  if (req.method !== 'GET') return;
   e.respondWith(
     fetch(req)
       .then((res) => {
@@ -23,6 +23,6 @@ self.addEventListener('fetch', (e) => {
         caches.open(CACHE).then((c) => c.put(req, copy));
         return res;
       })
-      .catch(() => caches.match(req).then((r) => r || caches.match('/index.html')))
+      .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
   );
 });

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>همسفره | همسفره برنامه ای برای همسفره ها</title>
   
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#4f46e5">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
 
   <style>
     :root {
@@ -84,7 +84,7 @@
 </head>
 <body>
   <div class="card">
-    <img src="/icon-192.png" alt="همسفره" class="icon">
+    <img src="./icon-192.png" alt="همسفره" class="icon">
     <h1>همسفره</h1>
     <p>همسفره برنامه ای برای همسفره ها — مدیریت هوشمند یخچال، انبار و مخارج مشترک خانوار</p>
     <button class="btn" id="installBtn">نصب وب‌اپلیکیشن (PWA)</button>
@@ -93,7 +93,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('./sw.js')
           .then((reg) => console.log('همسفره Service Worker ثبت شد:', reg.scope))
           .catch((err) => console.warn('خطا در ثبت Service Worker:', err));
       });
