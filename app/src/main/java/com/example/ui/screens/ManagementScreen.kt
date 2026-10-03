@@ -627,11 +627,27 @@ fun ManagementScreen(
                                 var inputApiKey by remember(firebaseApiKey) { mutableStateOf(firebaseApiKey) }
 
                                 Text(
-                                    text = "پیکربندی دیتابیس ابری فایربیس (Firebase Firestore):",
+                                    text = "پیکربندی دیتابیس ابری فایربیس (Firebase Realtime Database):",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Surface(
+                                    color = Color(0xFFD1FAE5),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "🟢 دیتابیس my-hamsofre-default-rtdb فعال و متصل است",
+                                        color = Color(0xFF065F46),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
 
                                 Spacer(modifier = Modifier.height(6.dp))
 

@@ -2627,6 +2627,7 @@
       firebase: {
         apiKey: '',
         projectId: 'my-hamsofre',
+        rtdbUrl: 'https://my-hamsofre-default-rtdb.firebaseio.com',
         appId: ''
       },
       supabase: {
@@ -2851,38 +2852,61 @@
         });
       }
 
-      if (cloudConfig.provider === 'firebase' && cloudConfig.firebase?.projectId) {
+      if (cloudConfig.provider === 'firebase') {
+        const rtdbUrl = cloudConfig.firebase?.rtdbUrl || 'https://my-hamsofre-default-rtdb.firebaseio.com';
         try {
-          const firestoreEndpoint = `https://firestore.googleapis.com/v1/projects/${cloudConfig.firebase.projectId}/databases/(default)/documents/houses/${cloudConfig.roomId}`;
-          
-          const getRes = await fetch(firestoreEndpoint);
+          // Sync via Firebase Realtime Database
+          const roomEndpoint = `${rtdbUrl}/rooms/${cloudConfig.roomId}.json`;
+          const getRes = await fetch(roomEndpoint);
           if (getRes.ok) {
-            const data = await getRes.json();
-            if (data && data.fields && data.fields.payload) {
-              const remotePayload = JSON.parse(data.fields.payload.stringValue);
-              if (remotePayload && remotePayload.updatedAt) {
-                mergeCloudPayload(remotePayload);
-              }
+            const remoteData = await getRes.json();
+            if (remoteData && remoteData.updatedAt && remoteData.updatedAt > (payload.updatedAt - 3000)) {
+              mergeCloudPayload(remoteData);
             }
           }
 
-          const patchRes = await fetch(firestoreEndpoint + '?updateMask.fieldPaths=payload&updateMask.fieldPaths=lastSync', {
-            method: 'PATCH',
+          const putRes = await fetch(roomEndpoint, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fields: {
-                payload: { stringValue: JSON.stringify(payload) },
-                lastSync: { integerValue: String(Date.now()) }
-              }
-            })
+            body: JSON.stringify(payload)
           });
 
-          if (patchRes.ok) {
+          if (putRes.ok) {
             cloudConfig.connected = true;
             updateCloudLedBadge();
           }
         } catch (e) {
-          console.warn('Cloud sync error:', e);
+          console.warn('Realtime database sync error:', e);
+        }
+
+        if (cloudConfig.firebase?.projectId) {
+          try {
+            const firestoreEndpoint = `https://firestore.googleapis.com/v1/projects/${cloudConfig.firebase.projectId}/databases/(default)/documents/houses/${cloudConfig.roomId}`;
+            
+            const getRes = await fetch(firestoreEndpoint);
+            if (getRes.ok) {
+              const data = await getRes.json();
+              if (data && data.fields && data.fields.payload) {
+                const remotePayload = JSON.parse(data.fields.payload.stringValue);
+                if (remotePayload && remotePayload.updatedAt) {
+                  mergeCloudPayload(remotePayload);
+                }
+              }
+            }
+
+            await fetch(firestoreEndpoint + '?updateMask.fieldPaths=payload&updateMask.fieldPaths=lastSync', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fields: {
+                  payload: { stringValue: JSON.stringify(payload) },
+                  lastSync: { integerValue: String(Date.now()) }
+                }
+              })
+            });
+          } catch (e) {
+            console.warn('Firestore fallback sync error:', e);
+          }
         }
       }
 
