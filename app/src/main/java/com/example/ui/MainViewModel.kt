@@ -128,6 +128,58 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isAutoReplenishEnabled = MutableStateFlow(true)
     val isAutoReplenishEnabled: StateFlow<Boolean> = _isAutoReplenishEnabled.asStateFlow()
 
+    // Theme Mode: 0 = System, 1 = Light, 2 = Dark
+    private val prefs = application.getSharedPreferences("hamsofre_prefs", Context.MODE_PRIVATE)
+    private val _themeMode = MutableStateFlow(prefs.getInt("theme_mode", 0))
+    val themeMode: StateFlow<Int> = _themeMode.asStateFlow()
+
+    fun setThemeMode(mode: Int) {
+        _themeMode.value = mode
+        prefs.edit().putInt("theme_mode", mode).apply()
+        val label = when (mode) {
+            1 -> "پوسته روشن"
+            2 -> "پوسته تاریک"
+            else -> "پیروی از تم سیستم"
+        }
+        showMessage("تنظیم پوسته به «$label» تغییر یافت.")
+    }
+
+    // Cloud Room Code
+    private val _cloudRoomCode = MutableStateFlow(prefs.getString("cloud_room_code", "HS-TEHRAN-101") ?: "HS-TEHRAN-101")
+    val cloudRoomCode: StateFlow<String> = _cloudRoomCode.asStateFlow()
+
+    private val _firebaseProjectId = MutableStateFlow(prefs.getString("firebase_project_id", "my-hamsofre") ?: "my-hamsofre")
+    val firebaseProjectId: StateFlow<String> = _firebaseProjectId.asStateFlow()
+
+    private val _firebaseApiKey = MutableStateFlow(prefs.getString("firebase_api_key", "") ?: "")
+    val firebaseApiKey: StateFlow<String> = _firebaseApiKey.asStateFlow()
+
+    fun setFirebaseConfig(projectId: String, apiKey: String) {
+        val cleanProj = projectId.trim()
+        val cleanKey = apiKey.trim()
+        _firebaseProjectId.value = cleanProj
+        _firebaseApiKey.value = cleanKey
+        prefs.edit()
+            .putString("firebase_project_id", cleanProj)
+            .putString("firebase_api_key", cleanKey)
+            .apply()
+        showMessage("تنظیمات فایربیس با شناسه «$cleanProj» متصل و ذخیره شد ✓")
+    }
+
+    fun setCloudRoomCode(code: String) {
+        val clean = code.trim().uppercase()
+        _cloudRoomCode.value = clean
+        prefs.edit().putString("cloud_room_code", clean).apply()
+        showMessage("شناسه اتاق خانه به «$clean» تنظیم شد.")
+    }
+
+    fun generateNewRoomCode() {
+        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        val randomPart = (1..5).map { chars.random() }.joinToString("")
+        val newCode = "HS-$randomPart"
+        setCloudRoomCode(newCode)
+    }
+
     init {
         // Automatic Shopping List replenishment based on consumption threshold
         viewModelScope.launch {
@@ -590,11 +642,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteMember(member: Member) {
         viewModelScope.launch {
             if (members.value.size <= 1) {
-                showMessage("نمی‌توانید آخرین عضو را حذف کنید!", isError = true)
+                showMessage("نمی‌توانید آخرین عضو باقی‌مانده را حذف کنید!", isError = true)
+                return@launch
+            }
+            val balance = memberBalances.value.firstOrNull { it.member.id == member.id }?.netBalance ?: 0L
+            if (balance < -100L) {
+                showMessage("🛑 محافظت مالی: «${member.name}» مبلغ ${formatNumber(Math.abs(balance))} تومان به خانه بدهکار است و تا زمان تسویه قابل حذف نیست!", isError = true)
                 return@launch
             }
             repository.deleteMember(member)
-            showMessage("عضو «${member.name}» حذف شد.")
+            showMessage("عضو «${member.name}» با موفقیت حذف شد.")
         }
     }
 

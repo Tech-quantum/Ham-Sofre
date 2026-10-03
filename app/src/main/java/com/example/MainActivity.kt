@@ -41,7 +41,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            MyApplicationTheme {
+            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+            val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+            val useDarkTheme = when (themeMode) {
+                1 -> false
+                2 -> true
+                else -> isSystemDark
+            }
+
+            MyApplicationTheme(darkTheme = useDarkTheme) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val context = LocalContext.current
 
@@ -269,11 +277,11 @@ class MainActivity : ComponentActivity() {
                                     onClick = { currentTab = 4 },
                                     icon = {
                                         Icon(
-                                            if (currentTab == 4) Icons.Filled.Group else Icons.Outlined.Group,
-                                            contentDescription = null
+                                            if (currentTab == 4) Icons.Filled.Settings else Icons.Outlined.Settings,
+                                            contentDescription = "مدیریت"
                                         )
                                     },
-                                    label = { Text("مصرف و افراد") }
+                                    label = { Text("مدیریت") }
                                 )
                             }
                         },
@@ -315,11 +323,12 @@ class MainActivity : ComponentActivity() {
                                     smartSuggestions = smartSuggestions,
                                     onOpenBarcodeScanner = { showBarcodeScanner = true }
                                 )
-                                4 -> ConsumptionAndMembersScreen(
+                                4 -> ManagementScreen(
                                     viewModel = viewModel,
                                     consumptionLogs = consumptionLogs,
                                     members = members,
-                                    chatMessages = chatMessages
+                                    chatMessages = chatMessages,
+                                    balances = balances
                                 )
                             }
                         }

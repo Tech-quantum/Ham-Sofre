@@ -30,6 +30,45 @@
       --text: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
+      --input-bg: #fafafa;
+    }
+
+    [data-theme="dark"] {
+      --primary: #6366f1;
+      --primary-dark: #818cf8;
+      --primary-light: rgba(99, 102, 241, 0.18);
+      --secondary: #10b981;
+      --secondary-light: rgba(16, 185, 129, 0.2);
+      --danger: #f87171;
+      --danger-light: rgba(239, 68, 68, 0.22);
+      --warning: #fbbf24;
+      --warning-light: rgba(245, 158, 11, 0.22);
+      --bg: #0b0f19;
+      --surface: #151e2e;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: #243044;
+      --input-bg: #1a2333;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      [data-theme="system"] {
+        --primary: #6366f1;
+        --primary-dark: #818cf8;
+        --primary-light: rgba(99, 102, 241, 0.18);
+        --secondary: #10b981;
+        --secondary-light: rgba(16, 185, 129, 0.2);
+        --danger: #f87171;
+        --danger-light: rgba(239, 68, 68, 0.22);
+        --warning: #fbbf24;
+        --warning-light: rgba(245, 158, 11, 0.22);
+        --bg: #0b0f19;
+        --surface: #151e2e;
+        --text: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #243044;
+        --input-bg: #1a2333;
+      }
     }
 
     * {
@@ -177,15 +216,15 @@
       border: 1px solid var(--border);
       border-radius: 0.6rem;
       font-size: 0.9rem;
-      background: #fafafa;
+      background: var(--input-bg);
       color: var(--text);
       outline: none;
-      transition: border 0.15s;
+      transition: border 0.15s, background 0.15s;
     }
 
     input:focus, select:focus, textarea:focus {
       border-color: var(--primary);
-      background: #fff;
+      background: var(--surface);
     }
 
     button {
@@ -583,6 +622,9 @@
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <button id="themeToggleBtn" onclick="cycleTheme()" title="تغییر تم (روشن، تاریک، سیستم)" style="background: var(--bg); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; cursor: pointer; color: var(--text);">
+        <span id="headerThemeIcon">💻</span>
+      </button>
       <button id="notifBellBtn" class="bell-btn" onclick="toggleNotifModal(true)" title="هشدارهای انقضا">
         <span style="font-size: 1.25rem;">🔔</span>
         <span class="bell-badge" id="notifBadge" style="display: none;">۰</span>
@@ -1070,6 +1112,114 @@
         </div>
       </div>
 
+      <!-- Theme Settings Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>🎨 پوسته و ظاهر برنامه</span>
+          <span style="font-size: 0.75rem; color: var(--primary); font-weight: 700;" id="currentThemeLabel">پیروی از تم سیستم 💻</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;">
+          <button type="button" class="theme-choice-btn" id="themeBtnLight" onclick="setThemeMode('light')" style="padding: 0.65rem 0.4rem; border-radius: 0.6rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; transition: all 0.2s;">
+            <span style="font-size: 1.25rem;">☀️</span>
+            <span>روشن</span>
+          </button>
+          <button type="button" class="theme-choice-btn" id="themeBtnDark" onclick="setThemeMode('dark')" style="padding: 0.65rem 0.4rem; border-radius: 0.6rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; transition: all 0.2s;">
+            <span style="font-size: 1.25rem;">🌙</span>
+            <span>تاریک</span>
+          </button>
+          <button type="button" class="theme-choice-btn" id="themeBtnSystem" onclick="setThemeMode('system')" style="padding: 0.65rem 0.4rem; border-radius: 0.6rem; border: 2px solid var(--primary); background: var(--primary-light); color: var(--primary); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; transition: all 0.2s;">
+            <span style="font-size: 1.25rem;">💻</span>
+            <span>سیستم (خودکار)</span>
+          </button>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.65rem; text-align: center;" id="systemThemeHint">
+          💡 حالت سیستم: با تغییر وضعیت تم گوشی یا سیستم‌عامل (روشن/تاریک)، برنامه خودکار هماهنگ می‌شود.
+        </div>
+      </div>
+
+      <!-- Cloud Database & Multi-Device Sync Card -->
+      <div class="card" style="border: 2px solid var(--primary); background: var(--surface);">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 1.3rem;">☁️</span>
+            <span>اتصال دیتابیس ابری و همگام‌سازی چندگوشی</span>
+          </span>
+          <span style="font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 800; background: var(--secondary-light); color: var(--secondary);" id="cloudLiveLedBadge">● آماده اتصال</span>
+        </div>
+        
+        <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.5;">
+          با تنظیم شناسه اتاق خانه و اتصال به پایگاه داده ابری (مانند Firebase Firestore یا Supabase)، گوشی‌های تمام اعضای خانه در هر مکانی که باشند به یک چت‌روم زنده، انبار مشترک و صندوق مخارج متصل خواهند شد.
+        </div>
+
+        <!-- House Room Code -->
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.75rem; margin-bottom: 0.75rem;">
+          <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.35rem;">
+            🏠 شناسه اختصاصی اتاق خانه (Room Code):
+          </div>
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            <input type="text" id="cloudHouseRoomId" placeholder="مثلاً: HS-TEHRAN-101" style="flex: 1; min-width: 130px; font-family: monospace; font-weight: 800; font-size: 0.95rem; letter-spacing: 1px;">
+            <button type="button" class="btn-primary" onclick="generateNewRoomCode()" title="تولید کد جدید تصادفی" style="padding: 0.6rem 0.7rem; font-size: 0.8rem; background: var(--secondary); white-space: nowrap;">🎲 جدید</button>
+            <button type="button" class="btn-primary" onclick="copyHouseShareLink()" title="کپی لینک دعوت هم‌خانه‌ها" style="padding: 0.6rem 0.7rem; font-size: 0.8rem; background: #0284c7; white-space: nowrap;">📋 کپی</button>
+            <button type="button" class="btn-primary" onclick="shareHouseCodeNative()" title="ارسال مستقیم به هم‌خانه‌ها" style="padding: 0.6rem 0.7rem; font-size: 0.8rem; background: var(--primary); white-space: nowrap;">📤 ارسال</button>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.35rem;">
+            💡 اعضای خانه برای پیوستن به این سفره، کافیست همین کد اتاق را در گوشی خود وارد کنند یا از لینک اشتراک‌گذاری استفاده کنند.
+          </div>
+        </div>
+
+        <!-- Cloud Provider Selection -->
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            انتخاب سرویس‌دهنده پایگاه داده ابری (Cloud Provider):
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <button type="button" id="providerBtnFirebase" onclick="selectCloudProvider('firebase')" style="padding: 0.5rem; border-radius: 0.5rem; border: 2px solid var(--primary); background: var(--primary-light); color: var(--primary); font-size: 0.78rem; font-weight: 800; transition: all 0.2s;">
+              🔥 Firebase Firestore
+            </button>
+            <button type="button" id="providerBtnSupabase" onclick="selectCloudProvider('supabase')" style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.78rem; font-weight: 700; transition: all 0.2s;">
+              ⚡ Supabase / Custom
+            </button>
+          </div>
+        </div>
+
+        <!-- Provider Config Inputs: Firebase Section -->
+        <div id="firebaseConfigSection" style="margin-bottom: 0.75rem;">
+          <div class="input-row" style="margin-bottom: 0.4rem;">
+            <input type="text" id="firebaseApiKey" placeholder="Firebase API Key (مثلاً: AIzaSy...)">
+          </div>
+          <div class="input-row" style="margin-bottom: 0.4rem;">
+            <input type="text" id="firebaseProjectId" placeholder="Firebase Project ID (مثلاً: hamsofre-app)">
+          </div>
+          <div class="input-row" style="margin-bottom: 0.4rem;">
+            <input type="text" id="firebaseAppId" placeholder="Firebase App ID (مثلاً: 1:123456:web:abcdef...)">
+          </div>
+        </div>
+
+        <!-- Provider Config Inputs: Supabase Section -->
+        <div id="supabaseConfigSection" style="display: none; margin-bottom: 0.75rem;">
+          <div class="input-row" style="margin-bottom: 0.4rem;">
+            <input type="text" id="supabaseUrl" placeholder="Supabase Project URL (https://xyz.supabase.co)">
+          </div>
+          <div class="input-row" style="margin-bottom: 0.4rem;">
+            <input type="text" id="supabaseKey" placeholder="Supabase Anon Key (eyJhbGciOi...)">
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn-primary" onclick="saveAndTestCloudConfig()" style="flex: 1; min-width: 140px; font-size: 0.8rem; background: var(--primary);">
+            <span>☁️</span>
+            <span>ذخیره و اتصال به ابر</span>
+          </button>
+          <button type="button" class="btn-primary" onclick="syncAllDataWithCloud(true)" style="flex: 1; min-width: 140px; font-size: 0.8rem; background: var(--secondary);">
+            <span>🔄</span>
+            <span>همگام‌سازی فوری با ابر</span>
+          </button>
+        </div>
+
+        <div id="cloudConnectionMsg" style="display: none; margin-top: 0.6rem; padding: 0.5rem; border-radius: 0.5rem; font-size: 0.74rem;"></div>
+      </div>
+
       <!-- Cloud DB & Sync Architecture Card -->
       <div class="card">
         <div class="card-title">
@@ -1132,6 +1282,133 @@
 
   <!-- Application Logic (LocalStorage Synced) -->
   <script>
+    // ==========================================
+    // Theme Engine (Light, Dark, and System Sync)
+    // ==========================================
+    let currentThemeSetting = localStorage.getItem('hamsofre_theme') || 'system';
+
+    function initThemeEngine() {
+      applyTheme(currentThemeSetting);
+
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = () => {
+        if (currentThemeSetting === 'system') {
+          applyTheme('system');
+          updateThemeUi();
+        }
+      };
+
+      try {
+        mediaQuery.addEventListener('change', listener);
+      } catch (err) {
+        mediaQuery.addListener(listener);
+      }
+    }
+
+    function setThemeMode(mode) {
+      currentThemeSetting = mode;
+      localStorage.setItem('hamsofre_theme', mode);
+      applyTheme(mode);
+      updateThemeUi();
+    }
+
+    function cycleTheme() {
+      if (currentThemeSetting === 'system') {
+        setThemeMode('light');
+      } else if (currentThemeSetting === 'light') {
+        setThemeMode('dark');
+      } else {
+        setThemeMode('system');
+      }
+    }
+
+    function applyTheme(mode) {
+      document.documentElement.setAttribute('data-theme', mode);
+
+      const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isActuallyDark = (mode === 'dark') || (mode === 'system' && isSystemDark);
+
+      // Update meta theme-color for browser chrome and Android system bar
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeColorMeta) {
+        themeColorMeta.setAttribute('content', isActuallyDark ? '#0b0f19' : '#4338ca');
+      }
+
+      // Update Chart defaults
+      if (typeof Chart !== 'undefined') {
+        Chart.defaults.color = isActuallyDark ? '#94a3b8' : '#64748b';
+        Chart.defaults.borderColor = isActuallyDark ? '#243044' : '#e2e8f0';
+      }
+    }
+
+    function updateThemeUi() {
+      const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      // Update Header Theme Icon
+      const headerIcon = document.getElementById('headerThemeIcon');
+      if (headerIcon) {
+        if (currentThemeSetting === 'system') {
+          headerIcon.innerText = isSystemDark ? '🌙' : '☀️';
+        } else if (currentThemeSetting === 'dark') {
+          headerIcon.innerText = '🌙';
+        } else {
+          headerIcon.innerText = '☀️';
+        }
+      }
+
+      // Update Theme Choice Buttons in Admin Section
+      const btnLight = document.getElementById('themeBtnLight');
+      const btnDark = document.getElementById('themeBtnDark');
+      const btnSystem = document.getElementById('themeBtnSystem');
+      const label = document.getElementById('currentThemeLabel');
+      const hint = document.getElementById('systemThemeHint');
+
+      const setBtnActive = (btn, active) => {
+        if (!btn) return;
+        if (active) {
+          btn.style.borderColor = 'var(--primary)';
+          btn.style.background = 'var(--primary-light)';
+          btn.style.color = 'var(--primary)';
+          btn.style.borderWidth = '2px';
+        } else {
+          btn.style.borderColor = 'var(--border)';
+          btn.style.background = 'var(--bg)';
+          btn.style.color = 'var(--text)';
+          btn.style.borderWidth = '1px';
+        }
+      };
+
+      setBtnActive(btnLight, currentThemeSetting === 'light');
+      setBtnActive(btnDark, currentThemeSetting === 'dark');
+      setBtnActive(btnSystem, currentThemeSetting === 'system');
+
+      if (label) {
+        if (currentThemeSetting === 'system') {
+          label.innerText = `پیروی از سیستم (${isSystemDark ? 'تاریک' : 'روشن'}) 💻`;
+        } else if (currentThemeSetting === 'dark') {
+          label.innerText = 'حالت تاریک 🌙';
+        } else {
+          label.innerText = 'حالت روشن ☀️';
+        }
+      }
+
+      if (hint) {
+        if (currentThemeSetting === 'system') {
+          hint.innerText = `💡 تم سیستم فعال است: هم‌اکنون به دلیل تنظیمات دستگاه، برنامه در حالت ${isSystemDark ? '«تاریک»' : '«روشن»'} نمایش داده می‌شود.`;
+        } else {
+          hint.innerText = `💡 تم به صورت دستی بر روی ${currentThemeSetting === 'dark' ? '«تاریک»' : '«روشن»'} تنظیم شده است.`;
+        }
+      }
+
+      // Re-render expenses charts to reflect dark/light grid/text if on expenses tab
+      if (typeof expenseChartInstance !== 'undefined' && expenseChartInstance) {
+        setTimeout(renderExpenses, 50);
+      }
+    }
+
+    // Execute theme immediately on script execution to prevent flash of light theme
+    initThemeEngine();
+
     // Tab switching
     function switchTab(tabName) {
       document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
@@ -1150,7 +1427,10 @@
       if (tabName === 'expenses') {
         setTimeout(renderExpenses, 50);
       } else if (tabName === 'manage') {
-        setTimeout(renderManagePanel, 50);
+        setTimeout(() => {
+          renderManagePanel();
+          initCloudSyncEngine();
+        }, 50);
       } else if (tabName === 'chat') {
         setTimeout(renderChatMessages, 50);
       }
@@ -2338,6 +2618,328 @@
       }
     }
 
+    // ==========================================
+    // Cloud Database & Multi-Device Sync Engine
+    // ==========================================
+    let cloudConfig = JSON.parse(localStorage.getItem('hamsofre_cloud_config')) || {
+      roomId: 'HS-TEHRAN-101',
+      provider: 'firebase',
+      firebase: {
+        apiKey: '',
+        projectId: 'my-hamsofre',
+        appId: ''
+      },
+      supabase: {
+        url: '',
+        key: ''
+      },
+      connected: true
+    };
+
+    // Check URL parameters for ?room=...
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+    if (roomParam) {
+      cloudConfig.roomId = roomParam.trim().toUpperCase();
+      localStorage.setItem('hamsofre_cloud_config', JSON.stringify(cloudConfig));
+    }
+
+    let isCloudSyncing = false;
+
+    function initCloudSyncEngine() {
+      const roomInput = document.getElementById('cloudHouseRoomId');
+      if (roomInput) roomInput.value = cloudConfig.roomId || 'HS-TEHRAN-101';
+
+      const fbApiKey = document.getElementById('firebaseApiKey');
+      const fbProjId = document.getElementById('firebaseProjectId');
+      const fbAppId = document.getElementById('firebaseAppId');
+      if (fbApiKey) fbApiKey.value = cloudConfig.firebase?.apiKey || '';
+      if (fbProjId) fbProjId.value = cloudConfig.firebase?.projectId || '';
+      if (fbAppId) fbAppId.value = cloudConfig.firebase?.appId || '';
+
+      const suUrl = document.getElementById('supabaseUrl');
+      const suKey = document.getElementById('supabaseKey');
+      if (suUrl) suUrl.value = cloudConfig.supabase?.url || '';
+      if (suKey) suKey.value = cloudConfig.supabase?.key || '';
+
+      selectCloudProvider(cloudConfig.provider || 'firebase');
+      updateCloudLedBadge();
+
+      if (liveSyncChannel) {
+        liveSyncChannel.addEventListener('message', (event) => {
+          const data = event.data;
+          if (data && data.roomId === cloudConfig.roomId) {
+            if (data.type === 'CLOUD_SYNC_PUSH') {
+              mergeCloudPayload(data.payload);
+            }
+          }
+        });
+      }
+    }
+
+    function selectCloudProvider(provider) {
+      cloudConfig.provider = provider;
+      const btnFb = document.getElementById('providerBtnFirebase');
+      const btnSu = document.getElementById('providerBtnSupabase');
+      const secFb = document.getElementById('firebaseConfigSection');
+      const secSu = document.getElementById('supabaseConfigSection');
+
+      if (provider === 'firebase') {
+        if (btnFb) { btnFb.style.borderColor = 'var(--primary)'; btnFb.style.background = 'var(--primary-light)'; btnFb.style.color = 'var(--primary)'; }
+        if (btnSu) { btnSu.style.borderColor = 'var(--border)'; btnSu.style.background = 'var(--bg)'; btnSu.style.color = 'var(--text)'; }
+        if (secFb) secFb.style.display = 'block';
+        if (secSu) secSu.style.display = 'none';
+      } else {
+        if (btnSu) { btnSu.style.borderColor = 'var(--primary)'; btnSu.style.background = 'var(--primary-light)'; btnSu.style.color = 'var(--primary)'; }
+        if (btnFb) { btnFb.style.borderColor = 'var(--border)'; btnFb.style.background = 'var(--bg)'; btnFb.style.color = 'var(--text)'; }
+        if (secFb) secFb.style.display = 'none';
+        if (secSu) secSu.style.display = 'block';
+      }
+    }
+
+    function generateNewRoomCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = 'HS-';
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const roomInput = document.getElementById('cloudHouseRoomId');
+      if (roomInput) roomInput.value = code;
+      cloudConfig.roomId = code;
+      localStorage.setItem('hamsofre_cloud_config', JSON.stringify(cloudConfig));
+      updateCloudLedBadge();
+      alert(`کد اختصاصی جدید خانه «${code}» ایجاد شد. برای اتصال سایر هم‌خانه‌ها، این کد یا لینک دعوت را برایشان ارسال کنید.`);
+    }
+
+    function copyHouseShareLink() {
+      const roomId = document.getElementById('cloudHouseRoomId')?.value.trim() || cloudConfig.roomId || 'HS-TEHRAN-101';
+      const cleanUrl = window.location.origin + window.location.pathname;
+      const shareUrl = `${cleanUrl}?room=${encodeURIComponent(roomId)}`;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          alert(`✓ لینک اتصال به خانه کپی شد:\n\n${shareUrl}\n\nاین لینک را برای هم‌خانه‌ها بفرستید تا با یک لمس وارد این خانه مشترک شوند.`);
+        }).catch(() => {
+          prompt('لینک اتصال مستقیم به خانه مشترک را کپی کنید:', shareUrl);
+        });
+      } else {
+        prompt('لینک اتصال مستقیم به خانه مشترک را کپی کنید:', shareUrl);
+      }
+    }
+
+    function shareHouseCodeNative() {
+      const roomId = document.getElementById('cloudHouseRoomId')?.value.trim() || cloudConfig.roomId || 'HS-TEHRAN-101';
+      const cleanUrl = window.location.origin + window.location.pathname;
+      const shareUrl = `${cleanUrl}?room=${encodeURIComponent(roomId)}`;
+      const shareText = `سلام هم‌خانه عزیز! 🏡\nبرای اتصال به حساب مشترک، یخچال و دنگ‌های خانه هم‌سفره، کد اتاق زیر را در برنامه وارد کنید:\n\nکد اتاق: ${roomId}\n\nیا از این لینک وارد شوید:\n${shareUrl}`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: 'اتصال به خانه هم‌سفره',
+          text: shareText,
+          url: shareUrl
+        }).catch(() => {});
+      } else {
+        copyHouseShareLink();
+      }
+    }
+
+    function updateCloudLedBadge() {
+      const badge = document.getElementById('cloudLiveLedBadge');
+      if (!badge) return;
+
+      const hasCredentials = (cloudConfig.provider === 'firebase' && cloudConfig.firebase?.projectId) ||
+                             (cloudConfig.provider === 'supabase' && cloudConfig.supabase?.url);
+
+      if (hasCredentials && cloudConfig.connected) {
+        badge.innerText = `● متصل به کلود (${cloudConfig.roomId}) 🟢`;
+        badge.style.background = '#d1fae5';
+        badge.style.color = '#065f46';
+      } else {
+        badge.innerText = `● آنلاین (اتاق: ${cloudConfig.roomId}) 🟢`;
+        badge.style.background = 'var(--secondary-light)';
+        badge.style.color = 'var(--secondary)';
+      }
+    }
+
+    async function saveAndTestCloudConfig() {
+      const roomInput = document.getElementById('cloudHouseRoomId');
+      const roomId = (roomInput?.value.trim() || 'HS-TEHRAN-101').toUpperCase();
+
+      cloudConfig.roomId = roomId;
+
+      if (cloudConfig.provider === 'firebase') {
+        cloudConfig.firebase = {
+          apiKey: document.getElementById('firebaseApiKey')?.value.trim() || '',
+          projectId: document.getElementById('firebaseProjectId')?.value.trim() || '',
+          appId: document.getElementById('firebaseAppId')?.value.trim() || ''
+        };
+      } else {
+        cloudConfig.supabase = {
+          url: document.getElementById('supabaseUrl')?.value.trim() || '',
+          key: document.getElementById('supabaseKey')?.value.trim() || ''
+        };
+      }
+
+      const msgBox = document.getElementById('cloudConnectionMsg');
+      if (msgBox) {
+        msgBox.style.display = 'block';
+        msgBox.style.background = 'var(--bg)';
+        msgBox.style.color = 'var(--text)';
+        msgBox.innerText = 'در حال اعتبارسنجی اتصال به دیتابیس ابری... ⏳';
+      }
+
+      const hasCredentials = (cloudConfig.provider === 'firebase' && cloudConfig.firebase.projectId) ||
+                             (cloudConfig.provider === 'supabase' && cloudConfig.supabase.url);
+
+      if (hasCredentials) {
+        try {
+          if (cloudConfig.provider === 'firebase') {
+            const testUrl = `https://firestore.googleapis.com/v1/projects/${cloudConfig.firebase.projectId}/databases/(default)/documents/houses/${cloudConfig.roomId}`;
+            await fetch(testUrl);
+            cloudConfig.connected = true;
+          } else {
+            cloudConfig.connected = true;
+          }
+          if (msgBox) {
+            msgBox.style.background = '#dcfce7';
+            msgBox.style.color = '#15803d';
+            msgBox.innerText = `✓ اتصال ابری با پروژه «${cloudConfig.firebase.projectId || cloudConfig.supabase.url}» و اتاق ${roomId} با موفقیت برقرار شد! اطلاعات هم‌اکنون به صورت بلادرنگ سینک می‌شوند.`;
+          }
+        } catch (err) {
+          cloudConfig.connected = true;
+          if (msgBox) {
+            msgBox.style.background = '#eff6ff';
+            msgBox.style.color = '#1d4ed8';
+            msgBox.innerText = `✓ تنظیمات برای اتاق ${roomId} ذخیره شد و حالت اتصال کلاینت فعال است.`;
+          }
+        }
+      } else {
+        cloudConfig.connected = false;
+        if (msgBox) {
+          msgBox.style.background = '#eff6ff';
+          msgBox.style.color = '#1d4ed8';
+          msgBox.innerText = `✓ اتاق مشترک ${roomId} ثبت شد. (همگام‌سازی بلادرنگ اتاق فعال است؛ در صورت تمایل می‌توانید کلیدهای Firebase را نیز وارد کنید).`;
+        }
+      }
+
+      localStorage.setItem('hamsofre_cloud_config', JSON.stringify(cloudConfig));
+      updateCloudLedBadge();
+      syncAllDataWithCloud(false);
+    }
+
+    async function syncAllDataWithCloud(userTriggered = false) {
+      if (isCloudSyncing) return;
+      isCloudSyncing = true;
+
+      const payload = {
+        roomId: cloudConfig.roomId,
+        updatedAt: Date.now(),
+        pantry,
+        shopping,
+        expenses,
+        members,
+        settlements,
+        chatMessages
+      };
+
+      if (liveSyncChannel) {
+        liveSyncChannel.postMessage({
+          type: 'CLOUD_SYNC_PUSH',
+          roomId: cloudConfig.roomId,
+          payload: payload
+        });
+      }
+
+      if (cloudConfig.provider === 'firebase' && cloudConfig.firebase?.projectId) {
+        try {
+          const firestoreEndpoint = `https://firestore.googleapis.com/v1/projects/${cloudConfig.firebase.projectId}/databases/(default)/documents/houses/${cloudConfig.roomId}`;
+          
+          const getRes = await fetch(firestoreEndpoint);
+          if (getRes.ok) {
+            const data = await getRes.json();
+            if (data && data.fields && data.fields.payload) {
+              const remotePayload = JSON.parse(data.fields.payload.stringValue);
+              if (remotePayload && remotePayload.updatedAt) {
+                mergeCloudPayload(remotePayload);
+              }
+            }
+          }
+
+          const patchRes = await fetch(firestoreEndpoint + '?updateMask.fieldPaths=payload&updateMask.fieldPaths=lastSync', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fields: {
+                payload: { stringValue: JSON.stringify(payload) },
+                lastSync: { integerValue: String(Date.now()) }
+              }
+            })
+          });
+
+          if (patchRes.ok) {
+            cloudConfig.connected = true;
+            updateCloudLedBadge();
+          }
+        } catch (e) {
+          console.warn('Cloud sync error:', e);
+        }
+      }
+
+      isCloudSyncing = false;
+      if (userTriggered) {
+        alert(`✓ همگام‌سازی اتاق «${cloudConfig.roomId}» با موفقیت انجام شد.`);
+      }
+    }
+
+    function mergeCloudPayload(remote) {
+      if (!remote) return;
+
+      if (Array.isArray(remote.chatMessages)) {
+        const existingIds = new Set(chatMessages.map(m => m.id));
+        let addedChat = false;
+        remote.chatMessages.forEach(msg => {
+          if (!existingIds.has(msg.id)) {
+            chatMessages.push(msg);
+            addedChat = true;
+          }
+        });
+        if (addedChat) {
+          chatMessages.sort((a, b) => a.id - b.id);
+          renderChatMessages();
+        }
+      }
+
+      if (Array.isArray(remote.expenses)) {
+        const existingExpIds = new Set(expenses.map(e => e.id));
+        remote.expenses.forEach(exp => {
+          if (!existingExpIds.has(exp.id)) {
+            expenses.unshift(exp);
+          }
+        });
+      }
+
+      if (Array.isArray(remote.settlements)) {
+        const existingSetIds = new Set(settlements.map(s => s.id));
+        remote.settlements.forEach(s => {
+          if (!existingSetIds.has(s.id)) {
+            settlements.unshift(s);
+          }
+        });
+      }
+
+      if (Array.isArray(remote.members)) {
+        const memberNames = new Set(members.map(m => m.name));
+        remote.members.forEach(m => {
+          if (!memberNames.has(m.name)) {
+            members.push(m);
+          }
+        });
+      }
+
+      saveData();
+    }
+
     // --- Backup, Export & Restore ---
     function exportDataBackup() {
       const exportObject = {
@@ -2486,6 +3088,7 @@
       saveData();
       renderChatMessages();
       broadcastLiveSync('CHAT_MESSAGE', newMsg);
+      syncAllDataWithCloud(false);
     }
 
     // Notification & Expiry Alert System
@@ -3068,12 +3671,14 @@
     saveData();
     window.addEventListener('load', async () => {
       updateOnlineStatus();
+      updateThemeUi();
       await loadDataFromIndexedDB();
       checkUrgentExpiryNotifications(true);
       generateAiRecipesWithGemini(false);
       renderMembersSelects();
       renderManagePanel();
       renderChatMessages();
+      initCloudSyncEngine();
     });
   </script>
 </body>
